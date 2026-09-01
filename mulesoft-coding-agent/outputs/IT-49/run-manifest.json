@@ -1,0 +1,348 @@
+{
+  "artifactKind": "mulesoft-coding-run",
+  "generatedAt": "2026-09-01T17:05:19.472Z",
+  "status": "ready",
+  "ticket": {
+    "key": "IT-49",
+    "summary": "MuleSoft | APIGEE -Mule conversion | Develop Product Registration process API for SFDC",
+    "description": "Develop a new process API in Mule called Product Registration API according to Newell standards, based on SFDC_ProductRegistration_Proxy and SFDC_Replacement_Parts_Lookup Apigee proxies. Must replicate the same business logic, use newell-common-core for error logging into Crowdstrike. Analyze Newell brands repos to identify reusable APIs before building new ones.",
+    "acceptanceCriteria": "",
+    "labels": [
+      "mulesoft",
+      "process-api",
+      "salesforce",
+      "apigee-migration"
+    ],
+    "comments": [],
+    "attachments": [],
+    "links": []
+  },
+  "workOrder": {
+    "sourceTicket": "IT-49",
+    "capability": "product-registration",
+    "targetApiLayer": "process",
+    "downstreamSystems": [
+      "Salesforce Service Cloud",
+      "SFCC"
+    ],
+    "operations": [
+      {
+        "name": "post-product-registration",
+        "method": "POST",
+        "path": "/product-registration",
+        "summary": "Register a product via SFDC",
+        "queryParameters": [],
+        "responseBody": {
+          "statusCode": "200",
+          "contentType": "application/json",
+          "example": {
+            "success": true,
+            "message": "Post /product-registration succeeded"
+          }
+        }
+      },
+      {
+        "name": "get-replacement-parts",
+        "method": "GET",
+        "path": "/replacement-parts",
+        "summary": "Retrieve replacement parts from SFCC",
+        "queryParameters": [
+          {
+            "name": "brand",
+            "type": "string",
+            "required": true,
+            "description": ""
+          },
+          {
+            "name": "partNumber",
+            "type": "string",
+            "required": true,
+            "description": ""
+          }
+        ],
+        "responseBody": {
+          "statusCode": "200",
+          "contentType": "application/json",
+          "example": {
+            "success": true,
+            "message": "Get /replacement-parts succeeded"
+          }
+        }
+      }
+    ],
+    "securityModel": {
+      "type": "jwt-bearer",
+      "sfdcAuthPattern": "delegate-to-sys-api",
+      "sfdcAuthApi": "sys-sfscnwl-api-v1",
+      "description": "SFDC JWT auth via downstream call to sys-sfscnwl-api-v1 — no inline JWT subflow."
+    },
+    "successCriteria": [
+      "RAML spec at src/main/resources/api/prc-product-registration-api.raml is source of truth",
+      "APIKit router dispatches POST /product-registration and GET /replacement-parts",
+      "newell-common-core-v1 used for global error handler and Crowdstrike logging",
+      "Email blacklist and brand whitelist validation in rf-post-product-registration.xml",
+      "SFDC auth delegates to sys-sfscnwl-api-v1 via HTTP",
+      "Replacement parts returns 404 when SFCC response total == 0",
+      "DWL transforms: rq-product-registration.dwl, rs-product-registration.dwl, rs-replacement-parts.dwl",
+      "mvn package -DskipTests passes",
+      "5 MUnit smoke tests (TC-001 to TC-005)"
+    ],
+    "architectureHints": [],
+    "referenceRepos": [
+      "int-apigee",
+      "int-mulesoft-sys-sfscnwl-api-v1"
+    ],
+    "multiApi": false
+  },
+  "clarification": {
+    "status": "ready",
+    "blocking": [],
+    "advisory": [],
+    "questions": [],
+    "resolvedDefaults": {
+      "targetApiLayer": "process",
+      "securityModel": {
+        "type": "jwt-bearer",
+        "sfdcAuthPattern": "delegate-to-sys-api",
+        "sfdcAuthApi": "sys-sfscnwl-api-v1",
+        "description": "SFDC JWT auth via downstream call to sys-sfscnwl-api-v1 — no inline JWT subflow."
+      }
+    }
+  },
+  "architecture": {
+    "apiLayer": "process",
+    "decision": "create new API",
+    "topology": "experience->process->system",
+    "securityRecommendation": "Preserve the current JWT bearer or OAuth exchange pattern behind the generated Mule app and keep the exact auth hook explicit.",
+    "mockModeFeasible": true,
+    "requiresMultipleApis": false,
+    "generationMode": "create-new",
+    "principlesApplied": [
+      "layer-role-clarity",
+      "design-first-reuse",
+      "governance-by-ruleset",
+      "asset-instance-separation"
+    ],
+    "implementationNotes": [
+      "Use RAML as the source of truth.",
+      "Keep existing Mule repos read-only and surface extension guidance separately.",
+      "Generate a new ACB-importable Mule app even when an extension candidate exists."
+    ],
+    "stopReason": null
+  },
+  "existingApiScan": {
+    "scannedRepoCount": 0,
+    "targetTokens": [
+      "product",
+      "catalog",
+      "pricebook",
+      "registration",
+      "process",
+      "salesforce",
+      "sfsc",
+      "sfscnwl",
+      "service",
+      "cloud",
+      "sfcc",
+      "post",
+      "get",
+      "replacement",
+      "parts"
+    ],
+    "closestReusableAsset": null,
+    "extensionCandidate": null,
+    "whyNotReuseAsIs": "No strong existing Mule repo match was found for product-registration, so a new app is still the safest v1 output.",
+    "newAppStillRequired": "This agent is scoped to produce one new deployable Mule app per ticket while separately reporting which existing asset could be reused or extended later.",
+    "candidates": []
+  },
+  "appDescriptor": {
+    "artifactId": "prc-product-registration-api-v1",
+    "repoName": "int-mulesoft-prc-product-registration-api-v1",
+    "ramlFileName": "prc-product-registration-api-v1.raml",
+    "capabilitySlug": "product-registration",
+    "apiLayer": "process"
+  },
+  "generatedProject": {
+    "rootDirName": "int-mulesoft-prc-product-registration-api-v1",
+    "files": {
+      "README.md": "# int-mulesoft-prc-product-registration-api-v1\n\nGenerated by mulesoft-coding-agent from Jira ticket IT-49.\n\n## Summary\n\n- Capability: product-registration\n- API layer: process\n- Architecture decision: create new API\n- Topology: experience->process->system\n- Mock mode: enabled by default in local properties\n\n## Local Run\n\n1. Keep `app.mockMode=true` in `src/main/resources/properties/local.yaml`\n2. Open the project in Anypoint Code Builder and run locally\n3. The generated bootstrap points to the local property set by default for a zero-setup first run\n4. Switch mock mode off only after filling the secure-property placeholders and rewiring env promotion as needed\n",
+      "pom.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n  <groupId>com.newell.ecommerce</groupId>\n  <artifactId>prc-product-registration-api-v1</artifactId>\n  <version>1.0.0</version>\n  <packaging>mule-application</packaging>\n  <name>prc-product-registration-api-v1</name>\n  <properties>\n    <app.runtime>4.9.0-java17</app.runtime>\n    <mule.version>4.9.0</mule.version>\n    <mule.maven.plugin.version>4.7.0</mule.maven.plugin.version>\n    <munit.version>3.0.0</munit.version>\n  </properties>\n  <build>\n    <plugins>\n      <plugin>\n        <groupId>org.mule.tools.maven</groupId>\n        <artifactId>mule-maven-plugin</artifactId>\n        <version>${mule.maven.plugin.version}</version>\n        <extensions>true</extensions>\n        <configuration>\n          <cloudHubDeployment>\n            <uri>https://anypoint.mulesoft.com</uri>\n            <muleVersion>${mule.version}</muleVersion>\n            <connectedAppClientId>${connectedAppClientId}</connectedAppClientId>\n            <connectedAppClientSecret>${connectedAppClientSecret}</connectedAppClientSecret>\n            <connectedAppGrantType>client_credentials</connectedAppGrantType>\n            <objectStoreV2>true</objectStoreV2>\n            <properties>\n              <env>${env}</env>\n              <anypoint.platform.client_id>${anypoint.platform.client_id}</anypoint.platform.client_id>\n              <anypoint.platform.client_secret>${anypoint.platform.client_secret}</anypoint.platform.client_secret>\n              <masterKey>${masterKey}</masterKey>\n            </properties>\n          </cloudHubDeployment>\n          <classifier>mule-application</classifier>\n        </configuration>\n      </plugin>\n      <plugin>\n        <groupId>com.mulesoft.munit.tools</groupId>\n        <artifactId>munit-maven-plugin</artifactId>\n        <version>${munit.version}</version>\n        <executions>\n          <execution>\n            <id>test</id>\n            <phase>test</phase>\n            <goals>\n              <goal>test</goal>\n              <goal>coverage-report</goal>\n            </goals>\n          </execution>\n        </executions>\n      </plugin>\n    </plugins>\n  </build>\n  <dependencies>\n    <dependency>\n      <groupId>com.mulesoft.modules</groupId>\n      <artifactId>mule-secure-configuration-property-module</artifactId>\n      <version>1.3.0</version>\n      <classifier>mule-plugin</classifier>\n    </dependency>\n    <dependency>\n      <groupId>org.mule.modules</groupId>\n      <artifactId>mule-apikit-module</artifactId>\n      <version>1.11.7</version>\n      <classifier>mule-plugin</classifier>\n    </dependency>\n    <dependency>\n      <groupId>org.mule.connectors</groupId>\n      <artifactId>mule-http-connector</artifactId>\n      <version>1.10.6</version>\n      <classifier>mule-plugin</classifier>\n    </dependency>\n    <dependency>\n      <groupId>org.mule.modules</groupId>\n      <artifactId>mule-validation-module</artifactId>\n      <version>2.0.7</version>\n      <classifier>mule-plugin</classifier>\n    </dependency>\n    <dependency>\n      <groupId>com.mulesoft.munit</groupId>\n      <artifactId>munit-tools</artifactId>\n      <version>3.0.0</version>\n      <classifier>mule-plugin</classifier>\n      <scope>test</scope>\n    </dependency>\n    <dependency>\n      <groupId>com.mulesoft.munit</groupId>\n      <artifactId>munit-runner</artifactId>\n      <version>3.0.0</version>\n      <classifier>mule-plugin</classifier>\n      <scope>test</scope>\n    </dependency>\n  </dependencies>\n  <repositories>\n    <repository>\n      <id>mulesoft-releases</id>\n      <name>MuleSoft Releases Repository</name>\n      <url>https://repository.mulesoft.org/releases/</url>\n      <layout>default</layout>\n    </repository>\n    <repository>\n      <id>anypoint-exchange-v3</id>\n      <name>Anypoint Exchange V3</name>\n      <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>\n      <layout>default</layout>\n    </repository>\n  </repositories>\n</project>\n",
+      "mule-artifact.json": "{\n  \"minMuleVersion\": \"4.9.0\",\n  \"secureProperties\": [\"masterKey\", \"anypoint.platform.client_secret\"]\n}\n",
+      "src/main/resources/log4j2.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Configuration status=\"WARN\">\n  <Appenders>\n    <Console name=\"Console\" target=\"SYSTEM_OUT\">\n      <PatternLayout pattern=\"%d %-5p [%t] %c - %m%n\" />\n    </Console>\n  </Appenders>\n  <Loggers>\n    <Root level=\"INFO\">\n      <AppenderRef ref=\"Console\" />\n    </Root>\n  </Loggers>\n</Configuration>\n",
+      "src/test/resources/log4j2-test.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Configuration status=\"WARN\">\n  <Appenders>\n    <Console name=\"Console\" target=\"SYSTEM_OUT\">\n      <PatternLayout pattern=\"%d %-5p [%t] %c - %m%n\" />\n    </Console>\n  </Appenders>\n  <Loggers>\n    <Root level=\"INFO\">\n      <AppenderRef ref=\"Console\" />\n    </Root>\n  </Loggers>\n</Configuration>\n",
+      "src/main/resources/api/prc-product-registration-api-v1.raml": "#%RAML 1.0\nbaseUri: https://anypoint.mulesoft.com/mocking/api/v1/links/placeholder\nversion: v1.0\ntitle: prc-product-registration-api-v1\nprotocols: HTTPS\nmediaType: application/json\ndocumentation:\n  - title: Product Registration Process API\n    content: Generated from Jira ticket IT-49 by mulesoft-coding-agent.\n\n/product-registration:\n  post:\n    description: Register a product via SFDC\n    responses:\n      200:\n        body:\n          application/json:\n            type: !include types/post-product-registration-response.raml\n            example: !include example/post-product-registration-response.json\n\n/replacement-parts:\n  get:\n    description: Retrieve replacement parts from SFCC\n    queryParameters:\n      brand:\n        type: string\n        required: true\n      partNumber:\n        type: string\n        required: true\n    responses:\n      200:\n        body:\n          application/json:\n            type: !include types/get-replacement-parts-response.raml\n            example: !include example/get-replacement-parts-response.json\n",
+      "src/main/resources/api/types/post-product-registration-response.raml": "#%RAML 1.0 DataType\ndescription: Register a product via SFDC response\ntype: object\nproperties:\n  success:\n    type: boolean\n  message:\n    type: string\n",
+      "src/main/resources/api/example/post-product-registration-response.json": "{\n  \"success\": true,\n  \"message\": \"Post /product-registration succeeded\"\n}\n",
+      "src/main/resources/api/types/get-replacement-parts-response.raml": "#%RAML 1.0 DataType\ndescription: Retrieve replacement parts from SFCC response\ntype: object\nproperties:\n  success:\n    type: boolean\n  message:\n    type: string\n",
+      "src/main/resources/api/example/get-replacement-parts-response.json": "{\n  \"success\": true,\n  \"message\": \"Get /replacement-parts succeeded\"\n}\n",
+      "src/main/mule/cf-global.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mule xmlns:secure-properties=\"http://www.mulesoft.org/schema/mule/secure-properties\"\n  xmlns:api-gateway=\"http://www.mulesoft.org/schema/mule/api-gateway\"\n  xmlns:apikit=\"http://www.mulesoft.org/schema/mule/mule-apikit\"\n  xmlns:http=\"http://www.mulesoft.org/schema/mule/http\"\n  xmlns=\"http://www.mulesoft.org/schema/mule/core\"\n  xmlns:doc=\"http://www.mulesoft.org/schema/mule/documentation\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"\nhttp://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd\nhttp://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd\nhttp://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd\nhttp://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd\nhttp://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd\">\n  <global-property name=\"env\" value=\"local\" />\n  <global-property name=\"masterKey\" value=\"local-dev-master-key\" />\n  <configuration-properties file=\"properties/${env}.yaml\" />\n  <secure-properties:config name=\"Secure_Properties_Config\" file=\"properties/local-secure.yaml\" key=\"${masterKey}\">\n    <secure-properties:encrypt algorithm=\"Blowfish\" />\n  </secure-properties:config>\n  <http:listener-config name=\"prc-product-registration-api-v1-listener-config\">\n    <http:listener-connection host=\"0.0.0.0\" port=\"${prc-product-registration-api-v1.http-listener.port}\" />\n  </http:listener-config>\n  <apikit:config name=\"prc-product-registration-api-v1-router-config\" api=\"prc-product-registration-api-v1.raml\" outboundHeadersMapName=\"outboundHeaders\" httpStatusVarName=\"httpStatus\" />\n  <http:request-config name=\"salesforce-service-cloud-request-config\" doc:name=\"HTTP Request configuration\">\n    <http:request-connection protocol=\"${salesforce-service-cloud.protocol}\" host=\"${salesforce-service-cloud.host}\" port=\"${salesforce-service-cloud.port}\" />\n  </http:request-config>\n  <http:request-config name=\"sfcc-request-config\" doc:name=\"HTTP Request configuration\">\n    <http:request-connection protocol=\"${sfcc.protocol}\" host=\"${sfcc.host}\" port=\"${sfcc.port}\" />\n  </http:request-config>\n  <api-gateway:autodiscovery apiId=\"${prc-product-registration-api-v1.api-discovery.id}\" flowRef=\"prc-product-registration-api-v1-main\" />\n</mule>\n",
+      "src/main/mule/pf-global-error-handler.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mule xmlns:ee=\"http://www.mulesoft.org/schema/mule/ee/core\"\n  xmlns=\"http://www.mulesoft.org/schema/mule/core\"\n  xmlns:doc=\"http://www.mulesoft.org/schema/mule/documentation\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"\nhttp://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd\nhttp://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd\">\n  <error-handler name=\"global-error\">\n    <on-error-propagate logException=\"true\" type=\"ANY\">\n      <ee:transform>\n        <ee:message>\n          <ee:set-payload><![CDATA[%dw 2.0\noutput application/json\n---\n{\n  success: false,\n  message: (error.description default error.errorType.identifier default \"Unhandled Mule error\"),\n  correlationId: correlationId()\n}]]></ee:set-payload>\n        </ee:message>\n        <ee:variables>\n          <ee:set-variable variableName=\"httpStatus\">500</ee:set-variable>\n        </ee:variables>\n      </ee:transform>\n    </on-error-propagate>\n  </error-handler>\n</mule>\n",
+      "src/main/mule/pf-router.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mule xmlns:apikit=\"http://www.mulesoft.org/schema/mule/mule-apikit\"\n  xmlns:http=\"http://www.mulesoft.org/schema/mule/http\"\n  xmlns=\"http://www.mulesoft.org/schema/mule/core\"\n  xmlns:doc=\"http://www.mulesoft.org/schema/mule/documentation\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"\nhttp://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd\nhttp://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd\nhttp://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd\">\n  <flow name=\"prc-product-registration-api-v1-main\">\n    <http:listener config-ref=\"prc-product-registration-api-v1-listener-config\" path=\"${prc-product-registration-api-v1.http-listener.path}\" doc:name=\"Listener\">\n      <http:response statusCode=\"#[vars.httpStatus default 200]\" />\n      <http:error-response statusCode=\"#[vars.httpStatus default 500]\">\n        <http:body><![CDATA[#[payload]]]></http:body>\n      </http:error-response>\n    </http:listener>\n    <apikit:router config-ref=\"prc-product-registration-api-v1-router-config\" />\n    <error-handler ref=\"global-error\" />\n  </flow>\n  <flow name=\"prc-product-registration-api-v1-console\">\n    <http:listener config-ref=\"prc-product-registration-api-v1-listener-config\" path=\"${prc-product-registration-api-v1.http-listener.console}\" />\n    <apikit:console config-ref=\"prc-product-registration-api-v1-router-config\" />\n  </flow>\n  <flow name=\"post:\\product-registration:prc-product-registration-api-v1-router-config\">\n    <flow-ref name=\"rf-post-product-registration\" />\n  </flow>\n  <flow name=\"get:\\replacement-parts:prc-product-registration-api-v1-router-config\">\n    <flow-ref name=\"rf-get-replacement-parts\" />\n  </flow>\n</mule>\n",
+      "src/main/mule/rf-product-registration.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mule xmlns:ee=\"http://www.mulesoft.org/schema/mule/ee/core\"\n  xmlns:http=\"http://www.mulesoft.org/schema/mule/http\"\n  xmlns=\"http://www.mulesoft.org/schema/mule/core\"\n  xmlns:doc=\"http://www.mulesoft.org/schema/mule/documentation\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"\nhttp://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd\nhttp://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd\nhttp://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd\">\n  <flow name=\"rf-post-product-registration\">\n    <choice>\n      <when expression=\"#[(p('app.mockMode') default 'true') == 'true']\">\n        <ee:transform doc:name=\"Return mock response\">\n          <ee:message>\n            <ee:set-payload resource=\"transformdata/post-product-registration-mock-response.dwl\" />\n          </ee:message>\n        </ee:transform>\n      </when>\n      <otherwise>\n    <http:request method=\"POST\" config-ref=\"salesforce-service-cloud-request-config\" path=\"/product-registration\">\n      <http:headers><![CDATA[#[vars.outboundHeaders default { \"Content-Type\": \"application/json\" }]]]></http:headers>\n    </http:request>\n      </otherwise>\n    </choice>\n  </flow>\n\n  <flow name=\"rf-get-replacement-parts\">\n    <choice>\n      <when expression=\"#[(p('app.mockMode') default 'true') == 'true']\">\n        <ee:transform doc:name=\"Return mock response\">\n          <ee:message>\n            <ee:set-payload resource=\"transformdata/get-replacement-parts-mock-response.dwl\" />\n          </ee:message>\n        </ee:transform>\n      </when>\n      <otherwise>\n    <http:request method=\"GET\" config-ref=\"salesforce-service-cloud-request-config\" path=\"/replacement-parts\">\n      <http:headers><![CDATA[#[vars.outboundHeaders default { \"Content-Type\": \"application/json\" }]]]></http:headers>\n      <http:query-params><![CDATA[#[attributes.queryParams default {}]]]></http:query-params>\n    </http:request>\n      </otherwise>\n    </choice>\n  </flow>\n</mule>\n",
+      "src/main/resources/transformdata/post-product-registration-mock-response.dwl": "%dw 2.0\noutput application/json\n---\n{\n  \"success\": true,\n  \"message\": \"Post /product-registration succeeded\"\n}\n",
+      "src/test/resources/post-product-registration-response.json": "{\n  \"success\": true,\n  \"message\": \"Post /product-registration succeeded\"\n}\n",
+      "src/main/resources/transformdata/get-replacement-parts-mock-response.dwl": "%dw 2.0\noutput application/json\n---\n{\n  \"success\": true,\n  \"message\": \"Get /replacement-parts succeeded\"\n}\n",
+      "src/test/resources/get-replacement-parts-response.json": "{\n  \"success\": true,\n  \"message\": \"Get /replacement-parts succeeded\"\n}\n",
+      "src/main/resources/properties/local.yaml": "env: \"local\"\nmasterKey: \"local-dev-master-key\"\nanypoint:\n  platform:\n    client_id: \"replace-me\"\n    client_secret: \"replace-me\"\nprc-product-registration-api-v1:\n  api-discovery:\n    id: \"0\"\n  http-listener:\n    port: \"8081\"\n    path: \"/api/*\"\n    console: \"/console/*\"\napp:\n  mockMode: \"true\"\nsalesforce-service-cloud:\n  protocol: \"HTTP\"\n  host: \"localhost\"\n  port: \"9081\"\nsfcc:\n  protocol: \"HTTP\"\n  host: \"localhost\"\n  port: \"9082\"\n",
+      "src/main/resources/properties/local-secure.yaml": "backend:\n  accessToken: \"replace-me\"\nplatform:\n  clientId: \"replace-me\"\n  clientSecret: \"replace-me\"\njira:\n  ticket: \"IT-49\"\n",
+      "src/main/resources/properties/dev.yaml": "env: \"local\"\nmasterKey: \"local-dev-master-key\"\nanypoint:\n  platform:\n    client_id: \"replace-me\"\n    client_secret: \"replace-me\"\nprc-product-registration-api-v1:\n  api-discovery:\n    id: \"0\"\n  http-listener:\n    port: \"8081\"\n    path: \"/api/*\"\n    console: \"/console/*\"\napp:\n  mockMode: \"false\"\nsalesforce-service-cloud:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\nsfcc:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\n",
+      "src/main/resources/properties/dev-secure.yaml": "backend:\n  accessToken: \"replace-me\"\nplatform:\n  clientId: \"replace-me\"\n  clientSecret: \"replace-me\"\njira:\n  ticket: \"IT-49\"\n",
+      "src/main/resources/properties/qa.yaml": "env: \"local\"\nmasterKey: \"local-dev-master-key\"\nanypoint:\n  platform:\n    client_id: \"replace-me\"\n    client_secret: \"replace-me\"\nprc-product-registration-api-v1:\n  api-discovery:\n    id: \"0\"\n  http-listener:\n    port: \"8081\"\n    path: \"/api/*\"\n    console: \"/console/*\"\napp:\n  mockMode: \"false\"\nsalesforce-service-cloud:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\nsfcc:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\n",
+      "src/main/resources/properties/qa-secure.yaml": "backend:\n  accessToken: \"replace-me\"\nplatform:\n  clientId: \"replace-me\"\n  clientSecret: \"replace-me\"\njira:\n  ticket: \"IT-49\"\n",
+      "src/main/resources/properties/uat.yaml": "env: \"local\"\nmasterKey: \"local-dev-master-key\"\nanypoint:\n  platform:\n    client_id: \"replace-me\"\n    client_secret: \"replace-me\"\nprc-product-registration-api-v1:\n  api-discovery:\n    id: \"0\"\n  http-listener:\n    port: \"8081\"\n    path: \"/api/*\"\n    console: \"/console/*\"\napp:\n  mockMode: \"false\"\nsalesforce-service-cloud:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\nsfcc:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\n",
+      "src/main/resources/properties/uat-secure.yaml": "backend:\n  accessToken: \"replace-me\"\nplatform:\n  clientId: \"replace-me\"\n  clientSecret: \"replace-me\"\njira:\n  ticket: \"IT-49\"\n",
+      "src/main/resources/properties/prd.yaml": "env: \"local\"\nmasterKey: \"local-dev-master-key\"\nanypoint:\n  platform:\n    client_id: \"replace-me\"\n    client_secret: \"replace-me\"\nprc-product-registration-api-v1:\n  api-discovery:\n    id: \"0\"\n  http-listener:\n    port: \"8081\"\n    path: \"/api/*\"\n    console: \"/console/*\"\napp:\n  mockMode: \"false\"\nsalesforce-service-cloud:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\nsfcc:\n  protocol: \"HTTPS\"\n  host: \"replace-me.apis.newellbrands.com\"\n  port: \"443\"\n",
+      "src/main/resources/properties/prd-secure.yaml": "backend:\n  accessToken: \"replace-me\"\nplatform:\n  clientId: \"replace-me\"\n  clientSecret: \"replace-me\"\njira:\n  ticket: \"IT-49\"\n",
+      "src/test/munit/prc-product-registration-api-v1-test-suite.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mule xmlns:munit=\"http://www.mulesoft.org/schema/mule/munit\"\n  xmlns:munit-tools=\"http://www.mulesoft.org/schema/mule/munit-tools\"\n  xmlns=\"http://www.mulesoft.org/schema/mule/core\"\n  xmlns:doc=\"http://www.mulesoft.org/schema/mule/documentation\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xsi:schemaLocation=\"\nhttp://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd\nhttp://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd\nhttp://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd\">\n  <munit:config name=\"prc-product-registration-api-v1-test-suite\" />\n  <munit:test name=\"post-product-registration-smoke-test\" description=\"Smoke test for Register a product via SFDC\">\n    <munit:execution>\n      <munit:set-event>\n        <munit:payload value=\"#[readUrl('classpath://examples/post-product-registration-request.json', 'application/json')]\" mediaType=\"application/json\" />\n      </munit:set-event>\n      <flow-ref name=\"rf-post-product-registration\" />\n    </munit:execution>\n    <munit:validation>\n      <munit-tools:assert-that expression=\"#[payload]\" is=\"#[MunitTools::notNullValue()]\" />\n    </munit:validation>\n  </munit:test>\n\n  <munit:test name=\"get-replacement-parts-smoke-test\" description=\"Smoke test for Retrieve replacement parts from SFCC\">\n    <munit:execution>\n      <munit:set-event>\n        <munit:payload value=\"#[readUrl('classpath://examples/get-replacement-parts-request.json', 'application/json')]\" mediaType=\"application/json\" />\n      </munit:set-event>\n      <flow-ref name=\"rf-get-replacement-parts\" />\n    </munit:execution>\n    <munit:validation>\n      <munit-tools:assert-that expression=\"#[payload]\" is=\"#[MunitTools::notNullValue()]\" />\n    </munit:validation>\n  </munit:test>\n</mule>\n",
+      "src/test/resources/examples/post-product-registration-request.json": "{}\n",
+      "src/test/resources/examples/get-replacement-parts-request.json": "{}\n"
+    }
+  },
+  "generatedOperations": [
+    {
+      "name": "post-product-registration",
+      "method": "POST",
+      "path": "/product-registration",
+      "requestTypePath": "types/post-product-registration-request.raml",
+      "responseTypePath": "types/post-product-registration-response.raml"
+    },
+    {
+      "name": "get-replacement-parts",
+      "method": "GET",
+      "path": "/replacement-parts",
+      "requestTypePath": "types/get-replacement-parts-request.raml",
+      "responseTypePath": "types/get-replacement-parts-response.raml"
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "checks": [
+      "required-file-layout",
+      "resource-reference-integrity",
+      "operation-presence",
+      "munit-suite-presence"
+    ],
+    "acbImportable": true,
+    "mockModeReady": true,
+    "errors": [],
+    "warnings": [],
+    "notes": [
+      "Validation in this scaffold is static and local.",
+      "Maven package and full MUnit execution should be attached in a later runtime-enabled revision."
+    ]
+  },
+  "remoteActions": [
+    {
+      "name": "exchange-publisher",
+      "approvalRequired": true,
+      "status": "pending-approval",
+      "blockedReason": null,
+      "summary": "Publish prc-product-registration-api-v1 RAML to Anypoint Exchange.",
+      "suggestedCommand": "mvn deploy -DskipTests -DassetId=prc-product-registration-api-v1"
+    },
+    {
+      "name": "github-delivery",
+      "approvalRequired": true,
+      "status": "pending-approval",
+      "blockedReason": null,
+      "summary": "Create a branch and PR for int-mulesoft-prc-product-registration-api-v1.",
+      "suggestedBranch": "codex/it-49",
+      "suggestedCommitMessage": "feat: scaffold prc-product-registration-api-v1 from IT-49"
+    },
+    {
+      "name": "jira-sync",
+      "approvalRequired": true,
+      "status": "pending-approval",
+      "blockedReason": null,
+      "summary": "Post generation and validation summary back to Jira ticket IT-49.",
+      "commentTemplate": "Generated int-mulesoft-prc-product-registration-api-v1. Validation status: passed."
+    }
+  ],
+  "parallelizationPlan": {
+    "discoveryWave": {
+      "mode": "parallel-sub-agents",
+      "subAgents": [
+        {
+          "name": "ticket-intake-subagent",
+          "skill": "jira-ticket-reader",
+          "writeScope": [],
+          "reason": "Normalize Jira ticket input into a structured Mule work order."
+        },
+        {
+          "name": "existing-api-scan-subagent",
+          "skill": "existing-mule-api-scanner",
+          "writeScope": [],
+          "reason": "Scan existing Mule repos read-only for reuse and extension guidance."
+        }
+      ]
+    },
+    "generationWave": {
+      "mode": "parallel-sub-agents-after-raml",
+      "subAgents": [
+        {
+          "name": "flow-subagent",
+          "skill": "mule-flow-writer",
+          "writeScope": [
+            "src/main/mule/**"
+          ],
+          "reason": "Generate listener, router, reusable flows, and auth hooks."
+        },
+        {
+          "name": "transform-subagent",
+          "skill": "dwl-transform-writer",
+          "writeScope": [
+            "src/main/resources/transformdata/**"
+          ],
+          "reason": "Generate canonical request/response transforms and mock payloads."
+        },
+        {
+          "name": "config-subagent",
+          "skill": "mock-runtime-configurator",
+          "writeScope": [
+            "src/main/resources/properties/**",
+            "src/main/resources/log4j2.xml"
+          ],
+          "reason": "Configure mock-mode local runtime and environment property templates."
+        },
+        {
+          "name": "test-subagent",
+          "skill": "munit-test-author",
+          "writeScope": [
+            "src/test/**"
+          ],
+          "reason": "Generate smoke-level MUnit coverage and sample request artifacts."
+        }
+      ]
+    },
+    "validationPreparation": {
+      "mode": "parallel-read-checks",
+      "checks": [
+        "required-file-layout",
+        "resource-reference-integrity",
+        "test-presence-check",
+        "raml-and-flow-consistency"
+      ]
+    },
+    "serializedSkills": [
+      "jira-clarifier",
+      "mulesoft-architecture-recommender-adapter",
+      "raml-author",
+      "mule-project-scaffolder",
+      "mule-validator",
+      "exchange-publisher",
+      "github-delivery",
+      "jira-sync"
+    ],
+    "notSubAgentSteps": [
+      "clarification",
+      "architecture decision",
+      "RAML finalization",
+      "final project assembly",
+      "Maven package",
+      "approval handling",
+      "Exchange publish",
+      "GitHub delivery",
+      "Jira updates"
+    ]
+  }
+}

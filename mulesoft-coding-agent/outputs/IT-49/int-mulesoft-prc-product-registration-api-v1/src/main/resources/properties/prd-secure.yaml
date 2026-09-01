@@ -1,0 +1,7 @@
+backend:
+  accessToken: "replace-me"
+platform:
+  clientId: "replace-me"
+  clientSecret: "replace-me"
+jira:
+  ticket: "IT-49"

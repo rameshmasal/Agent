@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+  xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+  xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+  xmlns:http="http://www.mulesoft.org/schema/mule/http"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+  <global-property name="env" value="local" />
+  <global-property name="masterKey" value="local-dev-master-key" />
+  <configuration-properties file="properties/${env}.yaml" />
+  <secure-properties:config name="Secure_Properties_Config" file="properties/local-secure.yaml" key="${masterKey}">
+    <secure-properties:encrypt algorithm="Blowfish" />
+  </secure-properties:config>
+  <http:listener-config name="prc-product-registration-api-v1-listener-config">
+    <http:listener-connection host="0.0.0.0" port="${prc-product-registration-api-v1.http-listener.port}" />
+  </http:listener-config>
+  <apikit:config name="prc-product-registration-api-v1-router-config" api="prc-product-registration-api-v1.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+  <http:request-config name="salesforce-service-cloud-request-config" doc:name="HTTP Request configuration">
+    <http:request-connection protocol="${salesforce-service-cloud.protocol}" host="${salesforce-service-cloud.host}" port="${salesforce-service-cloud.port}" />
+  </http:request-config>
+  <http:request-config name="sfcc-request-config" doc:name="HTTP Request configuration">
+    <http:request-connection protocol="${sfcc.protocol}" host="${sfcc.host}" port="${sfcc.port}" />
+  </http:request-config>
+  <api-gateway:autodiscovery apiId="${prc-product-registration-api-v1.api-discovery.id}" flowRef="prc-product-registration-api-v1-main" />
+</mule>

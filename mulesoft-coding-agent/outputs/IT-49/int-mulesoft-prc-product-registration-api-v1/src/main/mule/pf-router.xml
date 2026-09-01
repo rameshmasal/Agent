@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+  xmlns:http="http://www.mulesoft.org/schema/mule/http"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+  <flow name="prc-product-registration-api-v1-main">
+    <http:listener config-ref="prc-product-registration-api-v1-listener-config" path="${prc-product-registration-api-v1.http-listener.path}" doc:name="Listener">
+      <http:response statusCode="#[vars.httpStatus default 200]" />
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body><![CDATA[#[payload]]]></http:body>
+      </http:error-response>
+    </http:listener>
+    <apikit:router config-ref="prc-product-registration-api-v1-router-config" />
+    <error-handler ref="global-error" />
+  </flow>
+  <flow name="prc-product-registration-api-v1-console">
+    <http:listener config-ref="prc-product-registration-api-v1-listener-config" path="${prc-product-registration-api-v1.http-listener.console}" />
+    <apikit:console config-ref="prc-product-registration-api-v1-router-config" />
+  </flow>
+  <flow name="post:\product-registration:prc-product-registration-api-v1-router-config">
+    <flow-ref name="rf-post-product-registration" />
+  </flow>
+  <flow name="get:\replacement-parts:prc-product-registration-api-v1-router-config">
+    <flow-ref name="rf-get-replacement-parts" />
+  </flow>
+</mule>

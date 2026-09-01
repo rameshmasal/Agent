@@ -1,0 +1,23 @@
+env: "local"
+masterKey: "local-dev-master-key"
+anypoint:
+  platform:
+    client_id: "replace-me"
+    client_secret: "replace-me"
+prc-product-registration-api-v1:
+  api-discovery:
+    id: "0"
+  http-listener:
+    port: "8081"
+    path: "/api/*"
+    console: "/console/*"
+app:
+  mockMode: "true"
+salesforce-service-cloud:
+  protocol: "HTTP"
+  host: "localhost"
+  port: "9081"
+sfcc:
+  protocol: "HTTP"
+  host: "localhost"
+  port: "9082"

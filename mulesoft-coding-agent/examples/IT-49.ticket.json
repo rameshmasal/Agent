@@ -1,0 +1,77 @@
+{
+  "ticket": {
+    "key": "IT-49",
+    "summary": "MuleSoft | APIGEE -Mule conversion | Develop Product Registration process API for SFDC",
+    "description": "Develop a new process API in Mule called Product Registration API according to Newell standards, based on SFDC_ProductRegistration_Proxy and SFDC_Replacement_Parts_Lookup Apigee proxies. Must replicate the same business logic, use newell-common-core for error logging into Crowdstrike. Analyze Newell brands repos to identify reusable APIs before building new ones.",
+    "labels": ["mulesoft", "process-api", "salesforce", "apigee-migration"]
+  },
+  "context": {
+    "capability": "product-registration",
+    "targetApiLayer": "process",
+    "apiName": "prc-product-registration-api-v1",
+    "downstreamSystems": ["Salesforce Service Cloud", "SFCC"],
+    "referenceRepos": ["int-apigee", "int-mulesoft-sys-sfscnwl-api-v1"],
+    "migratedFrom": ["SFDC_ProductRegistration_Proxy", "SFDC_Replacement_Parts_Lookup"],
+    "operations": [
+      {
+        "method": "POST",
+        "path": "/product-registration",
+        "summary": "Register a product via SFDC",
+        "migratedFrom": "SFDC_ProductRegistration_Proxy",
+        "businessLogic": [
+          "Email blacklist validation (KVM-Blacklist -> properties-backed)",
+          "Brand whitelist validation (KVM-GetBrands -> properties-backed)",
+          "SFDC JWT auth via downstream sys-sfscnwl-api-v1",
+          "Transform request payload using DWL (replaces JS-FixKeyValuePairs.js)",
+          "Transform response using DWL (replaces JS-ExtractResult.js)"
+        ],
+        "errorCodes": [
+          { "code": "APP:BLACKLISTED_EMAIL", "httpStatus": 400 },
+          { "code": "BRAND_NOT_WHITELISTED", "httpStatus": 400 }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/replacement-parts",
+        "summary": "Retrieve replacement parts from SFCC",
+        "migratedFrom": "SFDC_Replacement_Parts_Lookup",
+        "businessLogic": [
+          "Brand-specific SFCC host/path via properties (KVM-GetValues + JS-GetBrandconfig migration)",
+          "Multipart form POST to SFCC (JS-buildFormPost.js + AM-FormPost migration)",
+          "Return 404 when SFCC response total == 0"
+        ],
+        "queryParameters": [
+          { "name": "brand", "type": "string", "required": true },
+          { "name": "partNumber", "type": "string", "required": true }
+        ]
+      }
+    ],
+    "securityModel": {
+      "type": "jwt-bearer",
+      "sfdcAuthPattern": "delegate-to-sys-api",
+      "sfdcAuthApi": "sys-sfscnwl-api-v1",
+      "description": "SFDC JWT auth via downstream call to sys-sfscnwl-api-v1 — no inline JWT subflow."
+    },
+    "kvmMigration": {
+      "strategy": "blowfish-encrypted-properties",
+      "kvms": ["KVM-Blacklist", "KVM-GetBrands", "KVM-GetValues"]
+    },
+    "loggingFramework": "newell-common-core-v1",
+    "loggingTarget": "Crowdstrike",
+    "mulesoftVersion": "4.10.5",
+    "groupId": "com.newell.ecommerce",
+    "artifactId": "prc-product-registration-api-v1",
+    "version": "1.0.0",
+    "successCriteria": [
+      "RAML spec at src/main/resources/api/prc-product-registration-api.raml is source of truth",
+      "APIKit router dispatches POST /product-registration and GET /replacement-parts",
+      "newell-common-core-v1 used for global error handler and Crowdstrike logging",
+      "Email blacklist and brand whitelist validation in rf-post-product-registration.xml",
+      "SFDC auth delegates to sys-sfscnwl-api-v1 via HTTP",
+      "Replacement parts returns 404 when SFCC response total == 0",
+      "DWL transforms: rq-product-registration.dwl, rs-product-registration.dwl, rs-replacement-parts.dwl",
+      "mvn package -DskipTests passes",
+      "5 MUnit smoke tests (TC-001 to TC-005)"
+    ]
+  }
+}

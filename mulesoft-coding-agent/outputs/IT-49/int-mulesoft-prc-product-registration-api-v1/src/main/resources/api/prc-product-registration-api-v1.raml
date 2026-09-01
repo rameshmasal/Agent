@@ -1,0 +1,36 @@
+#%RAML 1.0
+baseUri: https://anypoint.mulesoft.com/mocking/api/v1/links/placeholder
+version: v1.0
+title: prc-product-registration-api-v1
+protocols: HTTPS
+mediaType: application/json
+documentation:
+  - title: Product Registration Process API
+    content: Generated from Jira ticket IT-49 by mulesoft-coding-agent.
+
+/product-registration:
+  post:
+    description: Register a product via SFDC
+    responses:
+      200:
+        body:
+          application/json:
+            type: !include types/post-product-registration-response.raml
+            example: !include example/post-product-registration-response.json
+
+/replacement-parts:
+  get:
+    description: Retrieve replacement parts from SFCC
+    queryParameters:
+      brand:
+        type: string
+        required: true
+      partNumber:
+        type: string
+        required: true
+    responses:
+      200:
+        body:
+          application/json:
+            type: !include types/get-replacement-parts-response.raml
+            example: !include example/get-replacement-parts-response.json

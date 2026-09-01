@@ -1,0 +1,23 @@
+env: "local"
+masterKey: "local-dev-master-key"
+anypoint:
+  platform:
+    client_id: "replace-me"
+    client_secret: "replace-me"
+prc-product-registration-api-v1:
+  api-discovery:
+    id: "0"
+  http-listener:
+    port: "8081"
+    path: "/api/*"
+    console: "/console/*"
+app:
+  mockMode: "false"
+salesforce-service-cloud:
+  protocol: "HTTPS"
+  host: "replace-me.apis.newellbrands.com"
+  port: "443"
+sfcc:
+  protocol: "HTTPS"
+  host: "replace-me.apis.newellbrands.com"
+  port: "443"
