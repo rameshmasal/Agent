@@ -1,0 +1,36 @@
+{
+  "main": "agent-network.yaml",
+  "name": "Test",
+  "classifier": "agent-network",
+  "organizationId": "9b3ec720-c226-42b0-ade7-d257486eb04d",
+  "descriptorVersion": "1.0.0",
+  "tags": [],
+  "groupId": "9b3ec720-c226-42b0-ade7-d257486eb04d",
+  "assetId": "test",
+  "version": "1.0.0",
+  "dependencies": [],
+  "metadata": {
+    "variables": {
+      "agent1": {
+        "url": {
+          "description": "Agent 1 URL",
+          "default": "",
+          "secret": false
+        }
+      },
+      "mcpServer1": {
+        "url": {
+          "description": "MCP Server 1 URL",
+          "default": "",
+          "secret": false
+        }
+      },
+      "openai": {
+        "apiKey": {
+          "description": "OpenAI API key",
+          "default": ""
+        }
+      }
+    }
+  }
+}

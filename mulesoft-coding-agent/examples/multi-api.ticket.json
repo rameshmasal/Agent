@@ -1,0 +1,30 @@
+{
+  "ticket": {
+    "key": "INT-103",
+    "summary": "Create coordinated Experience, Process, and System APIs for contact journeys",
+    "description": "This ticket intentionally spans multiple Mule APIs.\n\n## Operations\n- POST /contacts/process - Process inbound contact updates\n",
+    "labels": ["mulesoft", "multi-api", "contacts"]
+  },
+  "context": {
+    "capability": "contact-journey",
+    "targetApiLayer": "process",
+    "downstreamSystems": ["Salesforce Service Cloud", "Slack"],
+    "operations": [
+      {
+        "method": "POST",
+        "path": "/contacts/process",
+        "summary": "Process contact updates",
+        "requestExample": {
+          "contactId": "003000000000001AAA",
+          "status": "updated"
+        },
+        "responseExample": {
+          "success": true,
+          "status": "accepted"
+        }
+      }
+    ],
+    "multiApi": true,
+    "architectureHints": ["multi-api"]
+  }
+}

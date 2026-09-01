@@ -1,0 +1,46 @@
+{
+  "ticket": {
+    "key": "INT-101",
+    "summary": "Create System API to pull Salesforce contact details",
+    "description": "Build a MuleSoft system API for retrieving Salesforce Service Cloud contact details.\n\n## Operations\n- GET /contact - Retrieve a contact by contactId\n\n## Success Criteria\n- Generate a RAML-first Mule app for contact retrieval\n- Keep local mock mode enabled by default\n- Suggest which existing Mule asset could be extended later\n",
+    "labels": ["mulesoft", "system-api", "salesforce", "contacts"]
+  },
+  "context": {
+    "capability": "contact-details",
+    "targetApiLayer": "system",
+    "downstreamSystems": ["Salesforce Service Cloud"],
+    "referenceRepos": ["int-mulesoft-sys-sfscnwl-api-v1"],
+    "operations": [
+      {
+        "method": "GET",
+        "path": "/contact",
+        "summary": "Retrieve a contact by contactId",
+        "queryParameters": [
+          {
+            "name": "contactId",
+            "type": "string",
+            "required": true,
+            "description": "Salesforce contact identifier."
+          }
+        ],
+        "responseExample": {
+          "success": true,
+          "contactId": "003000000000001AAA",
+          "firstName": "Taylor",
+          "lastName": "Jordan",
+          "email": "taylor.jordan@example.com"
+        }
+      }
+    ],
+    "securityModel": {
+      "type": "jwt-bearer",
+      "preserveExactPattern": true,
+      "description": "Preserve the current JWT/OAuth exchange used for Salesforce access."
+    },
+    "successCriteria": [
+      "ACB-importable Mule project is generated",
+      "Existing Mule APIs are scanned read-only for extension guidance",
+      "Remote actions remain approval-gated"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "mulesoft-coding-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone RAML-first MuleSoft coding agent for Jira-driven project generation.",
+  "scripts": {
+    "generate:mule": "node src/coding/cli.js",
+    "test:coding": "node --test tests/*.test.mjs"
+  }
+}

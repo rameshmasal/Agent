@@ -1,0 +1,8 @@
+{
+  "ticket": {
+    "key": "INT-102",
+    "summary": "Build contact orchestration API",
+    "description": "Create the MuleSoft API for contact orchestration.",
+    "labels": ["mulesoft", "process-api"]
+  }
+}
