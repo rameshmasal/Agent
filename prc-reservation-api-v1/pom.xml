@@ -30,7 +30,6 @@
                 <extensions>true</extensions>
                 <configuration>
                     <classifier>mule-application</classifier>
-                    <skipValidation>true</skipValidation>
                 </configuration>
             </plugin>
         </plugins>
