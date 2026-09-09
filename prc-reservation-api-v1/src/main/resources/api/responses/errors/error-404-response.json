@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "404",
+    "status": "NOT_FOUND",
+    "message": "Product not found in SAP for the given product ID.",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "path": "/basic",
+    "correlationId": "c3d5e7f9-a2b4-4678-cdef-112233445566",
+    "details": {
+      "field": "productId",
+      "reason": "No product record exists in SAP for productId 'MAT-100012345'. Please verify the product ID and try again."
+    }
+  }
+}

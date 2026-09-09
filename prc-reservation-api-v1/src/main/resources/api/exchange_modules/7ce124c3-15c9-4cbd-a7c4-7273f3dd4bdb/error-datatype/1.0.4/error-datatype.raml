@@ -1,0 +1,18 @@
+#%RAML 1.0 DataType
+type: object
+properties:
+  errorType:
+    type: string
+    required: true
+    description: "Type of error"
+    example: "APIKIT:BAD_REQUEST"
+  description:
+    type: string
+    required: true
+    description: "Description"
+    example: "Bad Request"
+  transaction-id:
+    type: string
+    required: true
+    description: "Transaction ID"
+    example: dd960082-abbf-47c2-8c65-f18eeb35848b

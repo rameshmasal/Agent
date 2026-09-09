@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "415",
+    "status": "UNSUPPORTED_MEDIA_TYPE",
+    "message": "Request Content-Type is not supported by this endpoint.",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "path": "/basic",
+    "correlationId": "g7b9c2d4-e6f8-5012-ghij-556677889900",
+    "details": {
+      "field": "Content-Type",
+      "reason": "The 'Content-Type' header value 'application/xml' is not supported. Only 'application/json' is accepted."
+    }
+  }
+}

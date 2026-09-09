@@ -4,27 +4,206 @@ version: v1.0
 mediaType: application/json
 protocols: [HTTPS]
 
+documentation:
+  - title: FG Collection Process API
+    content: >
+      Process API to create or update FG Collections and Finished Goods (FGs)
+      in Windchill via the NIS SOAP service (NWLNISService).
+      Accepts a JSON request, transforms to SOAP XML internally,
+      and returns a JSON response with per-record status codes.
+
+uses:
+  lib: /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+traits:
+  responseCodes: !include fragments/traits/response-codes.raml
+
+# ─── Type definitions ───────────────────────────────────────────────────────
+
+types:
+
+  FGRecord:
+    description: A single Finished Good record with all 27 NIS fields.
+    type: object
+    properties:
+      brand:
+        type: string
+        required: false
+      casePackQuantity:
+        type: string
+        required: false
+      dimensionalUpdate:
+        type: string
+        required: false
+      division:
+        type: string
+        required: false
+      exclusivity:
+        type: string
+        required: false
+      fgNumber:
+        type: string
+        required: false
+      graphicsUpdate:
+        type: string
+        required: false
+      likeItem:
+        type: string
+        required: false
+      materialDescription:
+        type: string
+        required: false
+      modelNumber:
+        type: string
+        required: false
+      nisSKUIdentifier:
+        type: string
+        required: false
+      otherUpdate:
+        type: string
+        required: false
+      pieceCount:
+        type: string
+        required: false
+      pigmentUniqueItemCode:
+        type: string
+        required: false
+      productCategory:
+        type: string
+        required: false
+      productHierarchyLevel5:
+        type: string
+        required: false
+      productUpdate:
+        type: string
+        required: false
+      refSAPNumber:
+        type: string
+        required: false
+      region:
+        type: string
+        required: false
+      sapPlant:
+        type: array
+        items: string
+        required: false
+        description: One or more SAP plant codes (unbounded).
+      shelfPackQuantity:
+        type: string
+        required: false
+      source:
+        type: string
+        required: false
+      subBrand:
+        type: string
+        required: false
+      unspscCode:
+        type: string
+        required: false
+      uom:
+        type: string
+        required: false
+      upcBarcodeToReuse:
+        type: string
+        required: false
+      upcReuseMode:
+        type: string
+        required: false
+
+  FGCollectionItem:
+    description: A single FG Collection with its FG records.
+    type: object
+    properties:
+      projectID:
+        type: string
+        required: true
+        description: Windchill project identifier.
+      division:
+        type: string
+        required: true
+        description: Business division (e.g. HOME).
+      fgcNumber:
+        type: string
+        required: true
+        description: FG Collection number (e.g. FGC-0001234).
+      fgRecords:
+        type: FGRecord[]
+        required: true
+        description: Array of Finished Good records to create or update.
+
+  FGCollectionRequest:
+    description: Root request wrapper — array of FG Collection items.
+    type: object
+    properties:
+      request:
+        type: FGCollectionItem[]
+        required: true
+
+  FGRecordResponse:
+    description: Per-FG status returned by Windchill NIS service.
+    type: object
+    properties:
+      fgName:
+        type: string
+        required: false
+      fgNumber:
+        type: string
+        required: false
+      nisSKUIdentifier:
+        type: string
+        required: false
+      statusCode:
+        type: string
+        required: false
+        description: NIS status code (e.g. NIS_CREATE_FG_000).
+      statusMessage:
+        type: string
+        required: false
+
+  FGCollectionResponseItem:
+    description: Per-FG Collection status and its FG results.
+    type: object
+    properties:
+      fgcNumber:
+        type: string
+        required: false
+      statusCode:
+        type: string
+        required: false
+        description: NIS status code (e.g. NIS_CREATE_FGC_000).
+      statusMessage:
+        type: string
+        required: false
+      fgRecords:
+        type: FGRecordResponse[]
+        required: false
+
+  FGCollectionResponse:
+    description: Root response wrapper — array of FG Collection results.
+    type: object
+    properties:
+      response:
+        type: FGCollectionResponseItem[]
+        required: true
+
+# ─── Resources ──────────────────────────────────────────────────────────────
+
 /fgcollection:
-  description: Create or update FG Collection and FGs in Windchill via NIS service.
+  description: Create or update FG Collections and FGs in Windchill via NIS service.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
   post:
     description: >
-      Accepts FG Collection request from NIS team, transforms to SOAP
-      and calls Windchill createOrUpdateFGCollectionAndFGs operation.
+      Accepts a JSON FG Collection request from the NIS team.
+      Transforms internally to SOAP XML and calls the Windchill
+      createOrUpdateFGCollectionAndFGs operation.
+      Returns a JSON response with per-collection and per-FG status codes.
     body:
-      application/json: {}
+      application/json:
+        type: FGCollectionRequest
+        example: !include responses/examples/fgcollection-request.json
     responses:
       200:
         body:
-          application/json: {}
-      400:
-        body:
-          application/json: {}
-      401:
-        body:
-          application/json: {}
-      404:
-        body:
-          application/json: {}
-      500:
-        body:
-          application/json: {}
+          application/json:
+            type: FGCollectionResponse
+            example: !include responses/examples/fgcollection-response.json

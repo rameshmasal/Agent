@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "502",
+    "status": "BAD_GATEWAY",
+    "message": "SAP system API returned an invalid or unexpected response.",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "path": "/product",
+    "correlationId": "m4h6i8j1-k3l5-5678-mnop-112233445566",
+    "details": {
+      "field": "SAP System API (sapnwl)",
+      "reason": "The SAP system API 'sapnwl' returned an invalid, malformed, or unexpected response while retrieving product details for productId 'MAT-100012345'. Please retry or contact the SAP integration team."
+    }
+  }
+}

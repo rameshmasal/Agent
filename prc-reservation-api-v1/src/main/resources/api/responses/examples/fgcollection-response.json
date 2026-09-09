@@ -1,0 +1,18 @@
+{
+  "response": [
+    {
+      "fgcNumber": "FGC-0001234",
+      "statusCode": "NIS_CREATE_FGC_000",
+      "statusMessage": "FG Collection created successfully",
+      "fgRecords": [
+        {
+          "fgName": "Sample FG Name",
+          "fgNumber": "FG-0009876",
+          "nisSKUIdentifier": "NIS-SKU-00001",
+          "statusCode": "NIS_CREATE_FG_000",
+          "statusMessage": "FG created successfully"
+        }
+      ]
+    }
+  ]
+}

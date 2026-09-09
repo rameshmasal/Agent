@@ -1,0 +1,74 @@
+#%RAML 1.0 Trait
+
+responses:
+  400:
+    description: Bad Request - Invalid or missing request body.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-400-response.json
+
+  401:
+    description: Unauthorized - Invalid or missing client credentials.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-401-response.json
+
+  403:
+    description: Forbidden - Client is authenticated but does not have permission.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-403-response.json
+
+  404:
+    description: Not Found - Requested resource not found.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-404-response.json
+
+  405:
+    description: Method Not Allowed - HTTP method is not supported on this resource.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-405-response.json
+
+  406:
+    description: Not Acceptable - Requested response format is not supported.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-406-response.json
+
+  415:
+    description: Unsupported Media Type - Content-Type header is not supported.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-415-response.json
+
+  500:
+    description: Internal Server Error - Unexpected error in the process API.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-500-response.json
+
+  501:
+    description: Not Implemented - Requested functionality is not implemented.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-501-response.json
+
+  502:
+    description: Bad Gateway - Windchill system returned an invalid response.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-502-response.json
+
+  503:
+    description: Service Unavailable - Windchill system is down or unreachable.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-503-response.json
+
+  504:
+    description: Gateway Timeout - Windchill call timed out at gateway level.
+    body:
+      application/json:
+        example: !include ../../responses/errors/error-504-response.json

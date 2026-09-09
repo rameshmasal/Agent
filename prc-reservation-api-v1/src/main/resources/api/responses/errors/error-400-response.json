@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "400",
+    "status": "BAD_REQUEST",
+    "message": "Invalid or missing required query parameter.",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "path": "/basic",
+    "correlationId": "a2b4c6d8-e1f3-4567-abcd-987654321xyz",
+    "details": {
+      "field": "productId",
+      "reason": "The query parameter 'productId' is missing or contains an invalid value. Expected format: 'MAT-XXXXXXXXX' (e.g., MAT-100012345)."
+    }
+  }
+}

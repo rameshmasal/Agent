@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "403",
+    "status": "FORBIDDEN",
+    "message": "Access forbidden. You do not have permission to access this resource.",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "path": "/basic",
+    "correlationId": "k2f4a6b8-c1d3-5456-klmn-990011223344",
+    "details": {
+      "field": "Authorization",
+      "reason": "The client 'client_id: xxxxxxxxxxxxxxxxxxxx' is authenticated but does not have the required permissions to access product details for productId 'MAT-100012345'. Please contact the API administrator to request access."
+    }
+  }
+}

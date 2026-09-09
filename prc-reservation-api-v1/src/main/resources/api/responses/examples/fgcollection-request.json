@@ -1,0 +1,40 @@
+{
+  "request": [
+    {
+      "projectID": "PROJ-001",
+      "division": "HOME",
+      "fgcNumber": "FGC-0001234",
+      "fgRecords": [
+        {
+          "nisSKUIdentifier": "NIS-SKU-00001",
+          "materialDescription": "Sample FG Name",
+          "fgNumber": "FG-0009876",
+          "division": "HOME",
+          "brand": "Rubbermaid",
+          "productCategory": "Storage",
+          "likeItem": "REF-ITEM-001",
+          "productHierarchyLevel5": "12345678901",
+          "subBrand": "Brilliance",
+          "modelNumber": "MODEL-XYZ",
+          "uom": "Unit",
+          "pieceCount": "1",
+          "unspscCode": "52151500",
+          "pigmentUniqueItemCode": "PIG-AB123",
+          "shelfPackQuantity": "6",
+          "casePackQuantity": "12",
+          "exclusivity": "YES",
+          "upcReuseMode": "New",
+          "upcBarcodeToReuse": "",
+          "refSAPNumber": "SAP-000456",
+          "graphicsUpdate": "Updated front panel artwork",
+          "dimensionalUpdate": "Height reduced by 2mm",
+          "productUpdate": "New lid mechanism",
+          "otherUpdate": "Eco-friendly packaging",
+          "source": "Make",
+          "region": "NOAM",
+          "sapPlant": ["P001"]
+        }
+      ]
+    }
+  ]
+}
