@@ -1,0 +1,4 @@
+sys-windchill-api:
+  client-secret: "![REPLACE_WITH_ENCRYPTED_QA_SECRET]"
+
+masterKey: "REPLACE_WITH_MASTER_KEY"

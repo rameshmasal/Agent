@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+        POST SOAP payload to sys-windchill-api.
+        Captures response into vars.windchill, validates HTTP status,
+        then parses SOAP XML → JSON.
+        Declared as sub-flow so errors propagate to parent flow's error-handler.
+    -->
+    <sub-flow name="sf-sys-windchill-fgcollection" doc:id="sf-windchill-fgcollection-001">
+
+        <http:request
+            doc:name="windchill-request"
+            config-ref="sys-windchill-api-configuration"
+            method="POST"
+            path="${sys-windchill-api.path}"
+            target="windchill"
+            targetValue="#[message]">
+            <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "client_id"     : "${sys-windchill-api.client-id}",
+    "client_secret" : "${secure::sys-windchill-api.client-secret}"
+}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="100..599"/>
+            </http:response-validator>
+        </http:request>
+
+        <!-- Wrap raw response for consistent payload access -->
+        <ee:transform doc:name="capture-response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+    body: vars.windchill.payload
+}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="statusCode"><![CDATA[%dw 2.0
+output application/java
+---
+vars.windchill.attributes.statusCode]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="validate-http-status">
+
+            <!-- Non-200 HTTP response from sys-windchill-api -->
+            <when expression="#[vars.statusCode != 200]">
+                <ee:transform doc:name="build-http-error">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+var errorBody = payload.body
+---
+{
+    "error": {
+        "code"    : (errorBody."status-code" default vars.statusCode) as String,
+        "status"  : (errorBody.status default "ERROR"),
+        "message" : (errorBody.description default "Windchill returned a non-200 response")
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <set-variable
+                    doc:name="httpStatus"
+                    value='#[(vars.statusCode default "500") as Number]'
+                    variableName="httpStatus"/>
+                <raise-error type="APP:ERROR" description="Windchill returned a non-200 response"/>
+            </when>
+
+            <!-- HTTP 200 — parse SOAP XML response to JSON -->
+            <otherwise>
+                <ee:transform doc:name="rs-create-fg-collection">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+ns S   http://schemas.xmlsoap.org/soap/envelope/
+ns ns2 http://nisservice.plm.nwl.com/
+---
+do {
+    var responseBody = payload.body.S#Envelope.S#Body
+                              .ns2#createOrUpdateFGCollectionAndFGsResponse
+    var returnList   = responseBody.*return
+    ---
+    {
+        response: returnList map (rec) -> {
+            fgcNumber:     rec.fgcNumber     default "",
+            statusCode:    rec.statusCode    default "",
+            statusMessage: rec.statusMessage default "",
+            fgRecords: (rec.*fgRecords default []) map (fg) -> {
+                fgName:           fg.fgName           default "",
+                fgNumber:         fg.fgNumber          default "",
+                nisSKUIdentifier: fg.nisSKUIdentifier  default "",
+                statusCode:       fg.statusCode        default "",
+                statusMessage:    fg.statusMessage     default ""
+            }
+        }
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+
+        </choice>
+
+    </sub-flow>
+
+</mule>

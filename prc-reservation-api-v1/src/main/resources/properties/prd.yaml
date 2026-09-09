@@ -1,0 +1,13 @@
+prc-reservation-api:
+  http-listener:
+    port: "8081"
+    path: "/*"
+    autodiscovery-id: "0"
+    timeout: "30000"
+
+sys-windchill-api:
+  host: ""
+  port: "443"
+  path: ""
+  timeout: "30000"
+  client-id: ""

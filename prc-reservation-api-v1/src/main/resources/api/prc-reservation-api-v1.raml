@@ -1,0 +1,30 @@
+#%RAML 1.0
+title: prc-reservation-api-v1
+version: v1.0
+mediaType: application/json
+protocols: [HTTPS]
+
+/fgcollection:
+  description: Create or update FG Collection and FGs in Windchill via NIS service.
+  post:
+    description: >
+      Accepts FG Collection request from NIS team, transforms to SOAP
+      and calls Windchill createOrUpdateFGCollectionAndFGs operation.
+    body:
+      application/json: {}
+    responses:
+      200:
+        body:
+          application/json: {}
+      400:
+        body:
+          application/json: {}
+      401:
+        body:
+          application/json: {}
+      404:
+        body:
+          application/json: {}
+      500:
+        body:
+          application/json: {}

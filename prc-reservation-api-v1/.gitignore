@@ -1,0 +1,13 @@
+target/
+.mule/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.DS_Store
+.idea/
+*.iml
+.settings/
+.project
+.classpath
