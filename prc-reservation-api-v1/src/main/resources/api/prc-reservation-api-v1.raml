@@ -15,9 +15,6 @@ documentation:
 uses:
   lib: /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
 
-traits:
-  responseCodes: !include fragments/traits/response-codes.raml
-
 # ─── Type definitions ───────────────────────────────────────────────────────
 
 types:
@@ -190,7 +187,7 @@ types:
 
 /fgcollection:
   description: Create or update FG Collections and FGs in Windchill via NIS service.
-  is: [lib.trackable, lib.client-credentials, responseCodes]
+  is: [lib.trackable, lib.client-credentials]
   post:
     description: >
       Accepts a JSON FG Collection request from the NIS team.
