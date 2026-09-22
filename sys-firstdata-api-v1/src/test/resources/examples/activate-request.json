@@ -1,0 +1,7 @@
+{
+  "cardNumber": "6006200000000000",
+  "pin": "1234",
+  "amount": 50.00,
+  "currencyCode": "USD",
+  "transactionId": "TXN-TEST-ACT-001"
+}

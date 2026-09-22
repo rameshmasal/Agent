@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <!--
+        Manual router — dispatches on HTTP method + trailing path segment.
+        All operations are POST-only per the First Data proxy contract.
+
+        Paths (relative to listener /sys/firstdata/v1/*):
+          POST /balance               → rf-firstdata-balance-post
+          POST /activate              → rf-firstdata-activate-post
+          POST /lock                  → rf-firstdata-lock-post
+          POST /unlock                → rf-firstdata-unlock-post
+          POST /merchantkeyactivation → rf-firstdata-merchantkeyactivation-post
+    -->
+    <flow name="pf-router" doc:name="pf-router">
+
+        <choice doc:name="Route by Method + Path">
+
+            <when expression="#[attributes.method == 'POST' and attributes.requestPath endsWith '/balance']">
+                <flow-ref name="rf-firstdata-balance-post" doc:name="Balance" />
+            </when>
+
+            <when expression="#[attributes.method == 'POST' and attributes.requestPath endsWith '/activate']">
+                <flow-ref name="rf-firstdata-activate-post" doc:name="Activate" />
+            </when>
+
+            <when expression="#[attributes.method == 'POST' and attributes.requestPath endsWith '/lock']">
+                <flow-ref name="rf-firstdata-lock-post" doc:name="Lock" />
+            </when>
+
+            <when expression="#[attributes.method == 'POST' and attributes.requestPath endsWith '/unlock']">
+                <flow-ref name="rf-firstdata-unlock-post" doc:name="Unlock" />
+            </when>
+
+            <when expression="#[attributes.method == 'POST' and attributes.requestPath endsWith '/merchantkeyactivation']">
+                <flow-ref name="rf-firstdata-merchantkeyactivation-post" doc:name="MerchantKeyActivation" />
+            </when>
+
+            <otherwise>
+                <set-variable variableName="httpStatus" value="#[404]" doc:name="Set 404" />
+                <set-payload
+                    value='{"status":"error","code":"NOT_FOUND","message":"No route found for the requested method and path"}'
+                    mimeType="application/json"
+                    doc:name="404 Payload" />
+            </otherwise>
+
+        </choice>
+
+    </flow>
+
+</mule>

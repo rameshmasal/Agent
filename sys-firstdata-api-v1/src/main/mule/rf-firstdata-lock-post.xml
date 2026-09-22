@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+        POST /sys/firstdata/v1/lock  (PartialLockTransaction code=2408)
+        Request  : { cardNumber, pin, amount, currencyCode, transactionId? }
+        Header   : X-Brand: marmot | yankee candle
+        Timeout  : if returnCode in [205,8] → send auto-reversal (code=0704)
+                   and return HTTP 504 with timeout error body
+    -->
+    <flow name="rf-firstdata-lock-post" doc:name="rf-firstdata-lock-post">
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-lock-post] START correlationId=' ++ correlationId]"
+            doc:name="Log start" />
+
+        <set-variable variableName="requestPayload" value="#[payload]" doc:name="Save requestPayload" />
+
+        <set-variable
+            variableName="brand"
+            value="#[(attributes.headers.'X-Brand' default '') lower()]"
+            doc:name="Set vars.brand" />
+
+        <choice doc:name="Validate brand">
+            <when expression="#[(p('sys.whitelisted-brands') splitBy ',') contains vars.brand]">
+                <logger level="DEBUG" message="#['[rf-firstdata-lock-post] brand valid: ' ++ vars.brand]" doc:name="Log valid brand" />
+            </when>
+            <otherwise>
+                <raise-error type="APP:INVALID_BRAND"
+                    description="#['Brand not whitelisted: ' ++ vars.brand]" />
+            </otherwise>
+        </choice>
+
+        <flow-ref name="sf-build-brand-config" doc:name="Build brand config" />
+        <flow-ref name="sf-url-discovery" doc:name="Discover target URL" />
+
+        <set-variable variableName="pin" value="#[vars.requestPayload.pin as String]" doc:name="Set vars.pin" />
+
+        <choice doc:name="Encrypt PIN?">
+            <when expression="#[vars.brandConfig.merchantKeyId != 'NOKEY']">
+                <flow-ref name="sf-encrypt-pin" doc:name="3DES encrypt PIN" />
+            </when>
+            <otherwise>
+                <set-variable variableName="encryptedPin" value="#[vars.pin]" doc:name="Use plain PIN" />
+            </otherwise>
+        </choice>
+
+        <!-- Lock uses PartialLockTransaction code 2408 -->
+        <set-variable variableName="originalTransactionCode" value="2408" doc:name="Set lock tx code" />
+
+        <ee:transform doc:name="Build FD lock payload string">
+            <ee:variables>
+                <ee:set-variable variableName="fdPayload" resource="transformdata/request-to-firstdata-lock.dwl" />
+            </ee:variables>
+        </ee:transform>
+
+        <ee:transform doc:name="Build XML request">
+            <ee:message>
+                <ee:set-payload><![CDATA[
+%dw 2.0
+import floor from dw::core::Math
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.brandConfig.did,
+      App: vars.brandConfig.appId,
+      Auth: vars.brandConfig.merchantId ++ "|" ++ vars.brandConfig.tid,
+      ClientRef: ((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')
+    },
+    Transaction: {
+      ServiceID: vars.brandConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.fdPayload
+    }
+  }
+}
+                ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-lock-post] calling FD url=' ++ vars.targetUrl]"
+            doc:name="Log FD call" />
+
+        <http:request
+            method="POST"
+            url="#[vars.targetUrl]"
+            config-ref="fdHttpRequestConfig"
+            doc:name="POST to First Data (lock)">
+            <http:headers>
+                <http:header key="Content-Type" value="application/xml; charset=utf-8" />
+                <http:header key="User-Agent" value="${sys.user-agent}" />
+            </http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="200..299" />
+            </http:response-validator>
+        </http:request>
+
+        <!-- ── Check for timeout returnCode ───────────────────────────────── -->
+        <choice doc:name="Timeout returnCode?">
+
+            <when expression="#[(p('sys.timeout-responses') splitBy ',') contains (payload.Response.TransactionResponse.ReturnCode as String default '')]">
+
+                <logger level="WARN"
+                    message="#['[rf-firstdata-lock-post] TIMEOUT returnCode=' ++ (payload.Response.TransactionResponse.ReturnCode as String default '')]"
+                    doc:name="Log timeout" />
+
+                <!-- Store the timed-out return code for the error response -->
+                <set-variable variableName="timeoutReturnCode"
+                    value="#[payload.Response.TransactionResponse.ReturnCode as String]"
+                    doc:name="Save timeout returnCode" />
+
+                <!-- Build reversal payload: replace tx code with 0704, append F6+originalCode -->
+                <ee:transform doc:name="Build reversal payload string">
+                    <ee:variables>
+                        <ee:set-variable variableName="reversalFdPayload"><![CDATA[
+%dw 2.0
+output text/plain
+var sep = "|1C"
+var fields = vars.fdPayload splitBy sep
+var origCode = vars.originalTransactionCode
+---
+((fields map (f) ->
+    if (f startsWith "40") "400704"
+    else f
+) joinBy sep) ++ sep ++ "F6" ++ origCode
+                        ]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+
+                <!-- Build reversal XML envelope -->
+                <ee:transform doc:name="Build reversal XML">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[
+%dw 2.0
+import floor from dw::core::Math
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.brandConfig.did,
+      App: vars.brandConfig.appId,
+      Auth: vars.brandConfig.merchantId ++ "|" ++ vars.brandConfig.tid,
+      ClientRef: ((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')
+    },
+    Transaction: {
+      ServiceID: vars.brandConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.reversalFdPayload
+    }
+  }
+}
+                        ]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+
+                <logger level="WARN" message="[rf-firstdata-lock-post] Sending auto-reversal" doc:name="Log reversal" />
+
+                <http:request
+                    method="POST"
+                    url="#[vars.targetUrl]"
+                    config-ref="fdHttpRequestConfig"
+                    doc:name="POST reversal to First Data">
+                    <http:headers>
+                        <http:header key="Content-Type" value="application/xml; charset=utf-8" />
+                        <http:header key="User-Agent" value="${sys.user-agent}" />
+                    </http:headers>
+                    <http:response-validator>
+                        <http:success-status-code-validator values="200..599" />
+                    </http:response-validator>
+                </http:request>
+
+                <set-variable variableName="httpStatus" value="#[504]" doc:name="Set HTTP 504" />
+                <set-payload
+                    value="#[output application/json --- {status: 'error', code: 'TIMEOUT', message: 'Lock transaction timed out — reversal sent', returnCode: vars.timeoutReturnCode}]"
+                    mimeType="application/json"
+                    doc:name="Set timeout error payload" />
+            </when>
+
+            <otherwise>
+                <!-- Normal response path -->
+                <ee:transform doc:name="Parse FD lock response">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/firstdata-to-lock-response.dwl" />
+                    </ee:message>
+                </ee:transform>
+                <set-variable variableName="httpStatus" value="#[200]" doc:name="Set HTTP 200" />
+            </otherwise>
+
+        </choice>
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-lock-post] DONE httpStatus=' ++ (vars.httpStatus as String)]"
+            doc:name="Log done" />
+
+        <error-handler ref="global-error" />
+
+    </flow>
+
+</mule>

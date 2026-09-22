@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit
+            http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools
+            http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <munit:config name="sys-firstdata-api-v1-test-suite" />
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TEST 1: Balance — marmot brand, NOKEY merchant, happy path
+         Mocks: sf-build-brand-config, sf-url-discovery, http:request (FD call)
+         ════════════════════════════════════════════════════════════════════ -->
+    <munit:test
+        name="balance-marmot-success-test"
+        description="POST /balance for marmot brand returns 200 with balance fields">
+
+        <munit:behavior>
+
+            <!-- Mock sf-build-brand-config to set brand config vars -->
+            <munit-tools:mock-when doc:name="Mock sf-build-brand-config" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-build-brand-config" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="brandMerchantId"      value="99021809997" />
+                        <munit-tools:variable key="brandMerchantKey"     value="FD:52:25:0E:23:0D:1C:DF:D5:C2:DF:0D:57:E3:E0:FE:FD:52:25:0E:23:0D:1C:DF" />
+                        <munit-tools:variable key="brandDid"             value="00055233918678049556" />
+                        <munit-tools:variable key="brandTerminalId"      value="0002" />
+                        <munit-tools:variable key="brandMerchantKeyId"   value="NOKEY" />
+                        <munit-tools:variable key="brandActivatePromoCode" value="79234" />
+                        <munit-tools:variable key="brandSourceCode"      value="30" />
+                        <munit-tools:variable key="brandConfig"><![CDATA[
+#[{
+    merchantId:        "99021809997",
+    merchantKey:       "FD:52:25:0E:23:0D:1C:DF:D5:C2:DF:0D:57:E3:E0:FE:FD:52:25:0E:23:0D:1C:DF",
+    did:               "00055233918678049556",
+    appId:             "NWLECOMMWGIFTXML",
+    terminalId:        "0002",
+    tid:               "00000000002",
+    serviceId:         "104",
+    sourceCode:        "30",
+    merchantKeyId:     "NOKEY",
+    activatePromoCode: "79234"
+}]]]>
+                        </munit-tools:variable>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <!-- Mock sf-url-discovery to set targetUrl -->
+            <munit-tools:mock-when doc:name="Mock sf-url-discovery" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-url-discovery" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="targetUrl" value="https://staging1.datawire.net:443/sd/104" />
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <!-- Mock First Data HTTP call — return mock XML response -->
+            <munit-tools:mock-when doc:name="Mock First Data HTTP POST" processor="http:request">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="fdHttpRequestConfig" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        mediaType="application/xml"
+                        value='#[
+                            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" ++
+                            "<Response>" ++
+                            "  <Status><StatusCode>OK</StatusCode></Status>" ++
+                            "  <TransactionResponse>" ++
+                            "    <ReturnCode>00</ReturnCode>" ++
+                            "    <Payload>402400|1C3900|1C706006200000000000|1C765000|1C780|1C75500|1CC0840|1CA01231|1CB0A|1C08REF123|1C38AUTH789|1C11TRC001</Payload>" ++
+                            "  </TransactionResponse>" ++
+                            "</Response>"
+                        ]' />
+                    <munit-tools:attributes value="#[{statusCode: 200}]" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+        </munit:behavior>
+
+        <munit:execution>
+            <!-- Set inbound attributes (X-Brand header and method) -->
+            <munit-tools:set-attributes
+                value="#[{headers: {'X-Brand': 'marmot'}, method: 'POST', requestPath: '/sys/firstdata/v1/balance'}]" />
+            <!-- Set JSON request body -->
+            <set-payload
+                value="#[readUrl('classpath://examples/balance-request.json', 'application/json')]"
+                mimeType="application/json"
+                doc:name="Set balance request body" />
+            <!-- Execute the balance flow directly -->
+            <flow-ref name="rf-firstdata-balance-post" doc:name="Execute rf-firstdata-balance-post" />
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.statusCode]"
+                is="#[MunitTools::equalTo('OK')]"
+                doc:name="Assert statusCode=OK" />
+            <munit-tools:assert-that
+                expression="#[payload.returnCode]"
+                is="#[MunitTools::equalTo('00')]"
+                doc:name="Assert returnCode=00" />
+            <munit-tools:assert-that
+                expression="#[payload.success]"
+                is="#[MunitTools::equalTo(true)]"
+                doc:name="Assert success=true" />
+            <munit-tools:assert-that
+                expression="#[payload.cardNumber]"
+                is="#[MunitTools::notNullValue()]"
+                doc:name="Assert cardNumber present" />
+            <munit-tools:assert-that
+                expression="#[payload.availableBalance]"
+                is="#[MunitTools::equalTo('5000')]"
+                doc:name="Assert availableBalance=5000" />
+            <munit-tools:assert-that
+                expression="#[payload.currencyCode]"
+                is="#[MunitTools::equalTo('USD')]"
+                doc:name="Assert currencyCode=USD" />
+        </munit:validation>
+
+    </munit:test>
+
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TEST 2: Balance — invalid brand returns 400
+         ════════════════════════════════════════════════════════════════════ -->
+    <munit:test
+        name="balance-invalid-brand-test"
+        description="POST /balance with unlisted brand returns 400 INVALID_BRAND"
+        expectedErrorType="APP:INVALID_BRAND">
+
+        <munit:execution>
+            <munit-tools:set-attributes
+                value="#[{headers: {'X-Brand': 'unknown-brand'}, method: 'POST', requestPath: '/sys/firstdata/v1/balance'}]" />
+            <set-payload
+                value="#[readUrl('classpath://examples/balance-request.json', 'application/json')]"
+                mimeType="application/json"
+                doc:name="Set request body" />
+            <flow-ref name="rf-firstdata-balance-post" doc:name="Execute balance flow" />
+        </munit:execution>
+
+    </munit:test>
+
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TEST 3: Activate — yankee candle brand, encrypted PIN, happy path
+         ════════════════════════════════════════════════════════════════════ -->
+    <munit:test
+        name="activate-yankee-candle-success-test"
+        description="POST /activate for yankee candle returns 200 with activate fields">
+
+        <munit:behavior>
+
+            <munit-tools:mock-when doc:name="Mock sf-build-brand-config" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-build-brand-config" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="brandMerchantId"      value="99033549997" />
+                        <munit-tools:variable key="brandMerchantKey"     value="d6:a4:02:34:f2:64:2c:b6:26:89:94:68:94:4c:c4:e9:d6:a4:02:34:f2:64:2c:b6" />
+                        <munit-tools:variable key="brandDid"             value="00040979226950670608" />
+                        <munit-tools:variable key="brandTerminalId"      value="0001" />
+                        <munit-tools:variable key="brandMerchantKeyId"   value="1002" />
+                        <munit-tools:variable key="brandActivatePromoCode" value="30253" />
+                        <munit-tools:variable key="brandSourceCode"      value="30" />
+                        <munit-tools:variable key="brandConfig"><![CDATA[
+#[{
+    merchantId:        "99033549997",
+    merchantKey:       "d6:a4:02:34:f2:64:2c:b6:26:89:94:68:94:4c:c4:e9:d6:a4:02:34:f2:64:2c:b6",
+    did:               "00040979226950670608",
+    appId:             "NWLECOMMWGIFTXML",
+    terminalId:        "0001",
+    tid:               "00000000002",
+    serviceId:         "104",
+    sourceCode:        "30",
+    merchantKeyId:     "1002",
+    activatePromoCode: "30253"
+}]]]>
+                        </munit-tools:variable>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <munit-tools:mock-when doc:name="Mock sf-url-discovery" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-url-discovery" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="targetUrl" value="https://staging1.datawire.net:443/sd/104" />
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <!-- Mock sf-encrypt-pin — return stub encrypted PIN -->
+            <munit-tools:mock-when doc:name="Mock sf-encrypt-pin" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-encrypt-pin" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="abcdef1234567890abcdef1234567890" mediaType="text/plain" />
+                    <munit-tools:variables>
+                        <munit-tools:variable key="encryptedPin" value="abcdef1234567890abcdef1234567890" />
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <!-- Mock First Data HTTP call for activate -->
+            <munit-tools:mock-when doc:name="Mock First Data HTTP POST" processor="http:request">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="fdHttpRequestConfig" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        mediaType="application/xml"
+                        value='#[
+                            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" ++
+                            "<Response>" ++
+                            "  <Status><StatusCode>OK</StatusCode></Status>" ++
+                            "  <TransactionResponse>" ++
+                            "    <ReturnCode>00</ReturnCode>" ++
+                            "    <Payload>402104|1C3900|1C706006200000000000|1C765000|1C780|1C750|1CC0840|1CA01231|1CB0A|1C08REF456|1C38AUTH012|1C11TRC002|1CF230253</Payload>" ++
+                            "  </TransactionResponse>" ++
+                            "</Response>"
+                        ]' />
+                    <munit-tools:attributes value="#[{statusCode: 200}]" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+        </munit:behavior>
+
+        <munit:execution>
+            <munit-tools:set-attributes
+                value="#[{headers: {'X-Brand': 'yankee candle'}, method: 'POST', requestPath: '/sys/firstdata/v1/activate'}]" />
+            <set-payload
+                value="#[readUrl('classpath://examples/activate-request.json', 'application/json')]"
+                mimeType="application/json"
+                doc:name="Set activate request body" />
+            <flow-ref name="rf-firstdata-activate-post" doc:name="Execute rf-firstdata-activate-post" />
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.statusCode]"
+                is="#[MunitTools::equalTo('OK')]"
+                doc:name="Assert statusCode=OK" />
+            <munit-tools:assert-that
+                expression="#[payload.returnCode]"
+                is="#[MunitTools::equalTo('00')]"
+                doc:name="Assert returnCode=00" />
+            <munit-tools:assert-that
+                expression="#[payload.success]"
+                is="#[MunitTools::equalTo(true)]"
+                doc:name="Assert success=true" />
+            <munit-tools:assert-that
+                expression="#[payload.availableBalance]"
+                is="#[MunitTools::equalTo('5000')]"
+                doc:name="Assert balance=5000 cents" />
+            <munit-tools:assert-that
+                expression="#[payload.promotionCode]"
+                is="#[MunitTools::equalTo('30253')]"
+                doc:name="Assert promotionCode=30253" />
+        </munit:validation>
+
+    </munit:test>
+
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TEST 4: Lock — timeout returnCode triggers reversal (HTTP 504)
+         ════════════════════════════════════════════════════════════════════ -->
+    <munit:test
+        name="lock-timeout-reversal-test"
+        description="POST /lock with returnCode=205 triggers auto-reversal and returns 504">
+
+        <munit:behavior>
+
+            <munit-tools:mock-when doc:name="Mock sf-build-brand-config" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-build-brand-config" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="brandMerchantId"      value="99021809997" />
+                        <munit-tools:variable key="brandMerchantKey"     value="FD:52:25:0E:23:0D:1C:DF:D5:C2:DF:0D:57:E3:E0:FE:FD:52:25:0E:23:0D:1C:DF" />
+                        <munit-tools:variable key="brandDid"             value="00055233918678049556" />
+                        <munit-tools:variable key="brandTerminalId"      value="0002" />
+                        <munit-tools:variable key="brandMerchantKeyId"   value="NOKEY" />
+                        <munit-tools:variable key="brandActivatePromoCode" value="79234" />
+                        <munit-tools:variable key="brandSourceCode"      value="30" />
+                        <munit-tools:variable key="brandConfig"><![CDATA[
+#[{
+    merchantId:        "99021809997",
+    merchantKey:       "FD:52:25:0E:23:0D:1C:DF:D5:C2:DF:0D:57:E3:E0:FE:FD:52:25:0E:23:0D:1C:DF",
+    did:               "00055233918678049556",
+    appId:             "NWLECOMMWGIFTXML",
+    terminalId:        "0002",
+    tid:               "00000000002",
+    serviceId:         "104",
+    sourceCode:        "30",
+    merchantKeyId:     "NOKEY",
+    activatePromoCode: "79234"
+}]]]>
+                        </munit-tools:variable>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <munit-tools:mock-when doc:name="Mock sf-url-discovery" processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="name" whereValue="sf-url-discovery" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:variables>
+                        <munit-tools:variable key="targetUrl" value="https://staging1.datawire.net:443/sd/104" />
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <!-- First call returns timeout returnCode=205; second call (reversal) returns OK -->
+            <munit-tools:mock-when doc:name="Mock First Data HTTP — returns timeout" processor="http:request">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute attributeName="config-ref" whereValue="fdHttpRequestConfig" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        mediaType="application/xml"
+                        value='#[
+                            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" ++
+                            "<Response>" ++
+                            "  <Status><StatusCode>TIMEOUT</StatusCode></Status>" ++
+                            "  <TransactionResponse>" ++
+                            "    <ReturnCode>205</ReturnCode>" ++
+                            "    <Payload></Payload>" ++
+                            "  </TransactionResponse>" ++
+                            "</Response>"
+                        ]' />
+                    <munit-tools:attributes value="#[{statusCode: 200}]" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+        </munit:behavior>
+
+        <munit:execution>
+            <munit-tools:set-attributes
+                value="#[{headers: {'X-Brand': 'marmot'}, method: 'POST', requestPath: '/sys/firstdata/v1/lock'}]" />
+            <set-payload
+                value='{"cardNumber":"6006200000000000","pin":"1234","amount":25.00,"currencyCode":"USD","transactionId":"TXN-LOCK-001"}'
+                mimeType="application/json"
+                doc:name="Set lock request body" />
+            <flow-ref name="rf-firstdata-lock-post" doc:name="Execute rf-firstdata-lock-post" />
+        </munit:execution>
+
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.httpStatus]"
+                is="#[MunitTools::equalTo(504)]"
+                doc:name="Assert HTTP 504" />
+            <munit-tools:assert-that
+                expression="#[payload.code]"
+                is="#[MunitTools::equalTo('TIMEOUT')]"
+                doc:name="Assert error code=TIMEOUT" />
+            <munit-tools:assert-that
+                expression="#[payload.returnCode]"
+                is="#[MunitTools::equalTo('205')]"
+                doc:name="Assert timeout returnCode=205" />
+        </munit:validation>
+
+    </munit:test>
+
+</mule>

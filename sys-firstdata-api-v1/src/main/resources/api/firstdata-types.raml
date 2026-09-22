@@ -1,0 +1,135 @@
+#%RAML 1.0 Library
+
+types:
+
+  # ── Common request fields ────────────────────────────────────────────────
+  CardRequest:
+    type: object
+    description: Fields shared by all card operations
+    properties:
+      cardNumber:
+        type: string
+        required: true
+        description: Gift card number (PAN)
+        example: "6006200000000000"
+      pin:
+        type: string
+        required: true
+        description: Gift card PIN (plain text — encrypted by the API before sending to First Data)
+        example: "1234"
+      currencyCode:
+        type: string
+        required: false
+        default: "USD"
+        enum: [USD, CAD]
+        description: ISO 4217 currency code
+      transactionId:
+        type: string
+        required: false
+        description: Optional caller reference / correlation ID (sent in field 15)
+
+  AmountRequest:
+    type: CardRequest
+    description: Card request with a monetary amount
+    properties:
+      amount:
+        type: number
+        required: true
+        description: Transaction amount in dollars (e.g. 50.00)
+        minimum: 0.01
+        example: 50.00
+
+  # ── Request types ────────────────────────────────────────────────────────
+  BalanceRequest:
+    type: CardRequest
+    description: Balance enquiry request
+
+  ActivateRequest:
+    type: AmountRequest
+    description: Gift card activation request
+
+  LockRequest:
+    type: AmountRequest
+    description: Partial lock (reserve) request
+
+  UnlockRequest:
+    type: AmountRequest
+    description: Unlock (release) request
+    properties:
+      lockId:
+        type: string
+        required: true
+        description: Lock ID returned by the lock operation (field 79)
+
+  MerchantKeyActivationRequest:
+    type: object
+    description: Merchant key activation request (tx code 2010)
+    properties:
+      keyId:
+        type: string
+        required: true
+        description: Key ID (e.g. "1002")
+      workingKey:
+        type: string
+        required: true
+        description: Working key hex string
+      source:
+        type: string
+        required: true
+        description: Source code
+
+  # ── Response types ───────────────────────────────────────────────────────
+  CardResponse:
+    type: object
+    description: Common fields returned by card operations
+    properties:
+      statusCode:      { type: string, description: "First Data status (OK | AuthenticationError | TIMEOUT)" }
+      returnCode:      { type: string, description: "Transaction return code (00=success)" }
+      responseCode:    { type: string?, description: "Field 39 — transaction response code" }
+      cardNumber:      { type: string?, description: "Field 70 — card number echo" }
+      availableBalance:{ type: string?, description: "Field 76 — available balance in cents" }
+      lockedAmount:    { type: string?, description: "Field 78 — locked amount in cents" }
+      previousBalance: { type: string?, description: "Field 75 — balance before this transaction" }
+      currencyCode:    { type: string?, description: "ISO currency code (USD | CAD)" }
+      expirationDate:  { type: string?, description: "Field A0 — card expiry" }
+      cardClass:       { type: string?, description: "Field B0 — card class" }
+      referenceNumber: { type: string?, description: "Field 08 — reference number" }
+      authorizationCode:{ type: string?, description: "Field 38 — authorisation code" }
+      traceNumber:     { type: string?, description: "Field 11 — trace number" }
+      success:         { type: boolean, description: "Convenience flag: statusCode==OK and returnCode==00" }
+
+  BalanceResponse:
+    type: CardResponse
+
+  ActivateResponse:
+    type: CardResponse
+    properties:
+      promotionCode:  { type: string?, description: "Field F2 — promotion code applied" }
+      ltoFundAmount:  { type: string?, description: "Field 02 — LTO fund amount in cents" }
+      merchantFunds:  { type: string?, description: "Field 2A — merchant funds in cents" }
+      cashback:       { type: string?, description: "Field 54 — cashback amount in cents" }
+
+  LockResponse:
+    type: CardResponse
+    properties:
+      lockId: { type: string?, description: "Field 79 — lock ID (must be supplied to unlock)" }
+
+  UnlockResponse:
+    type: CardResponse
+    properties:
+      lockId: { type: string?, description: "Field 79 — lock ID (should be absent/cleared after unlock)" }
+
+  MerchantKeyActivationResponse:
+    type: object
+    properties:
+      statusCode:  { type: string }
+      returnCode:  { type: string }
+      success:     { type: boolean }
+
+  ErrorResponse:
+    type: object
+    properties:
+      status:  { type: string, enum: [error] }
+      code:    { type: string, description: "Machine-readable error code" }
+      message: { type: string, description: "Human-readable description" }
+      returnCode: { type: string?, description: "First Data return code if available" }

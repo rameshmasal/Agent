@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+        http://www.mulesoft.org/schema/mule/scripting
+            http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         sf-url-discovery
+         Sets vars.targetUrl — checked in this order:
+           1. Object Store key fd_current_url (fast path, TTL=300s)
+           2. Object Store key fd_urls_list   (pre-sorted list)
+           3. Parallel ping of all configured hosts; sort by fastest
+         Prerequisite: vars.brandConfig must be set (sf-build-brand-config).
+         ═══════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-url-discovery" doc:name="sf-url-discovery">
+
+        <!-- Step 1 — try fast-path cached URL -->
+        <os:retrieve
+            key="fd_current_url"
+            objectStore="fdUrlObjectStore"
+            doc:name="Get fd_current_url">
+            <os:default-value>#[null]</os:default-value>
+        </os:retrieve>
+
+        <choice doc:name="fd_current_url cached?">
+
+            <when expression="#[payload != null and payload != '']">
+                <set-variable variableName="targetUrl" value="#[payload]" doc:name="Use cached targetUrl" />
+                <logger level="DEBUG"
+                    message="#['[sf-url-discovery] cache hit fd_current_url=' ++ vars.targetUrl]"
+                    doc:name="Log cache hit" />
+            </when>
+
+            <otherwise>
+                <!-- Step 2 — try sorted URL list -->
+                <os:retrieve
+                    key="fd_urls_list"
+                    objectStore="fdUrlObjectStore"
+                    doc:name="Get fd_urls_list">
+                    <os:default-value>#[null]</os:default-value>
+                </os:retrieve>
+
+                <choice doc:name="fd_urls_list cached?">
+
+                    <when expression="#[payload != null and payload != '']">
+                        <!-- Pick first (fastest) URL from comma-separated list -->
+                        <ee:transform doc:name="Pick first URL from list">
+                            <ee:variables>
+                                <ee:set-variable variableName="targetUrl"><![CDATA[
+%dw 2.0
+output application/java
+---
+(payload splitBy ',')[0]
+                                ]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                        <os:store
+                            key="fd_current_url"
+                            objectStore="fdUrlObjectStore"
+                            failOnAlreadyExists="false"
+                            doc:name="Cache fd_current_url from list">
+                            <os:value>#[vars.targetUrl]</os:value>
+                        </os:store>
+                        <logger level="DEBUG"
+                            message="#['[sf-url-discovery] cache hit fd_urls_list, targetUrl=' ++ vars.targetUrl]"
+                            doc:name="Log list cache hit" />
+                    </when>
+
+                    <otherwise>
+                        <!-- Step 3 — parallel ping all configured hosts -->
+                        <logger level="INFO"
+                            message="[sf-url-discovery] No cached URL found — pinging all First Data hosts"
+                            doc:name="Log ping start" />
+
+                        <set-variable
+                            variableName="fdServerHosts"
+                            value="#[p('sys.server.hosts') splitBy ',']"
+                            doc:name="Split server host list" />
+
+                        <parallel-foreach
+                            doc:name="Ping All First Data Hosts"
+                            collection="#[vars.fdServerHosts]">
+                            <try doc:name="Try ping one host">
+                                <set-variable variableName="pingHost" value="#[payload]" doc:name="Capture host" />
+                                <set-variable
+                                    variableName="pingStartMs"
+                                    value="#[(now() as Number {unit: 'milliseconds'})]"
+                                    doc:name="Record start time" />
+                                <!-- Build Ping XML request -->
+                                <ee:transform doc:name="Build Ping XML">
+                                    <ee:message>
+                                        <ee:set-payload><![CDATA[
+%dw 2.0
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.brandConfig.did,
+      App: vars.brandConfig.appId,
+      Auth: vars.brandConfig.merchantId ++ "|" ++ vars.brandConfig.tid,
+      ClientRef: {}
+    },
+    Ping: {
+      ServiceID: vars.brandConfig.serviceId as Number
+    }
+  }
+}
+                                        ]]></ee:set-payload>
+                                    </ee:message>
+                                </ee:transform>
+                                <http:request
+                                    method="POST"
+                                    url="#['https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.brandConfig.serviceId]"
+                                    config-ref="fdHttpRequestConfig"
+                                    doc:name="Ping First Data host">
+                                    <http:headers>
+                                        <http:header key="User-Agent" value="${sys.user-agent}" />
+                                        <http:header key="Content-Type" value="application/xml; charset=utf-8" />
+                                    </http:headers>
+                                    <http:response-validator>
+                                        <http:success-status-code-validator values="200..599" />
+                                    </http:response-validator>
+                                </http:request>
+                                <!-- Return ping result with elapsed time -->
+                                <set-payload
+                                    value="#[{url: 'https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.brandConfig.serviceId, ms: ((now() as Number {unit: 'milliseconds'}) - vars.pingStartMs)}]"
+                                    doc:name="Set ping result" />
+                                <error-handler>
+                                    <on-error-continue type="ANY" doc:name="On ping error — use high latency">
+                                        <set-payload
+                                            value="#[{url: 'https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.brandConfig.serviceId, ms: 999999}]"
+                                            doc:name="Set unreachable result" />
+                                    </on-error-continue>
+                                </error-handler>
+                            </try>
+                        </parallel-foreach>
+
+                        <!-- payload is now a List<{url, ms}> from each parallel iteration -->
+                        <ee:transform doc:name="Sort by fastest and build URL list">
+                            <ee:variables>
+                                <ee:set-variable variableName="sortedUrlList"><![CDATA[
+%dw 2.0
+output application/java
+var sorted = payload orderBy $.ms
+---
+(sorted map $.url) joinBy ','
+                                ]]></ee:set-variable>
+                                <ee:set-variable variableName="targetUrl"><![CDATA[
+%dw 2.0
+output application/java
+var sorted = payload orderBy $.ms
+---
+sorted[0].url
+                                ]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+
+                        <os:store
+                            key="fd_current_url"
+                            objectStore="fdUrlObjectStore"
+                            failOnAlreadyExists="false"
+                            doc:name="Cache fastest URL">
+                            <os:value>#[vars.targetUrl]</os:value>
+                        </os:store>
+                        <os:store
+                            key="fd_urls_list"
+                            objectStore="fdUrlObjectStore"
+                            failOnAlreadyExists="false"
+                            doc:name="Cache sorted URL list">
+                            <os:value>#[vars.sortedUrlList]</os:value>
+                        </os:store>
+
+                        <logger level="INFO"
+                            message="#['[sf-url-discovery] ping complete, fastest=' ++ vars.targetUrl]"
+                            doc:name="Log ping result" />
+                    </otherwise>
+
+                </choice>
+            </otherwise>
+        </choice>
+
+    </sub-flow>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         sf-build-brand-config
+         Reads brand-specific properties (plain + secure) into vars:
+           vars.brandConfig  — Map of all brand config values
+           vars.brandMerchantKey — raw merchant key string (for sf-encrypt-pin)
+         Prerequisite: vars.brand must be set (lowercase, e.g. "marmot").
+         ═══════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-build-brand-config" doc:name="sf-build-brand-config">
+
+        <choice doc:name="Select brand config by name">
+
+            <when expression="#[vars.brand == 'marmot']">
+                <!-- Secure values resolved via ${secure::...} at request time -->
+                <set-variable variableName="brandMerchantId"   value="${secure::marmot.merchant-id}"   doc:name="Marmot merchantId" />
+                <set-variable variableName="brandMerchantKey"  value="${secure::marmot.merchant-key}"  doc:name="Marmot merchantKey" />
+                <set-variable variableName="brandDid"          value="${secure::marmot.did}"            doc:name="Marmot DID" />
+                <set-variable variableName="brandTerminalId"   value="${marmot.terminal-id}"            doc:name="Marmot terminalId" />
+                <set-variable variableName="brandMerchantKeyId" value="${marmot.merchant-key-id}"       doc:name="Marmot merchantKeyId" />
+                <set-variable variableName="brandActivatePromoCode" value="${marmot.activate-promo-code}" doc:name="Marmot promoCode" />
+                <set-variable variableName="brandSourceCode"   value="${marmot.source-code}"            doc:name="Marmot sourceCode" />
+            </when>
+
+            <when expression="#[vars.brand == 'yankee candle']">
+                <set-variable variableName="brandMerchantId"   value="${secure::yankee-candle.merchant-id}"   doc:name="YC merchantId" />
+                <set-variable variableName="brandMerchantKey"  value="${secure::yankee-candle.merchant-key}"  doc:name="YC merchantKey" />
+                <set-variable variableName="brandDid"          value="${secure::yankee-candle.did}"            doc:name="YC DID" />
+                <set-variable variableName="brandTerminalId"   value="${yankee-candle.terminal-id}"            doc:name="YC terminalId" />
+                <set-variable variableName="brandMerchantKeyId" value="${yankee-candle.merchant-key-id}"       doc:name="YC merchantKeyId" />
+                <set-variable variableName="brandActivatePromoCode" value="${yankee-candle.activate-promo-code}" doc:name="YC promoCode" />
+                <set-variable variableName="brandSourceCode"   value="${yankee-candle.source-code}"            doc:name="YC sourceCode" />
+            </when>
+
+            <otherwise>
+                <raise-error type="APP:BRAND_CONFIG_NOT_FOUND"
+                    description="#['No property configuration found for brand: ' ++ vars.brand]" />
+            </otherwise>
+
+        </choice>
+
+        <!-- Assemble brandConfig map from individual vars -->
+        <ee:transform doc:name="Build brandConfig map">
+            <ee:variables>
+                <ee:set-variable variableName="brandConfig"><![CDATA[
+%dw 2.0
+output application/java
+---
+{
+    merchantId:        vars.brandMerchantId,
+    merchantKey:       vars.brandMerchantKey,
+    did:               vars.brandDid,
+    appId:             p('sys.app-id'),
+    terminalId:        vars.brandTerminalId,
+    tid:               p('sys.tid'),
+    serviceId:         p('sys.service-id'),
+    sourceCode:        vars.brandSourceCode,
+    merchantKeyId:     vars.brandMerchantKeyId,
+    activatePromoCode: vars.brandActivatePromoCode
+}
+                ]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <logger level="DEBUG"
+            message="#['[sf-build-brand-config] brand=' ++ vars.brand ++ ' merchantKeyId=' ++ vars.brandConfig.merchantKeyId]"
+            doc:name="Log brand config" />
+
+    </sub-flow>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         sf-encrypt-pin
+         3DES (DESede/CBC/NoPadding) PIN encryption matching Apigee
+         crypto-js TripleDES implementation.
+
+         Inputs  (must be set before flow-ref):
+           vars.pin            — plain-text card PIN
+           vars.brandMerchantKey — colon-hex 24-byte key (e.g. FD:52:25:...)
+
+         Output:
+           vars.encryptedPin   — 32-char lowercase hex encrypted PIN
+           payload             — same 32-char string (Groovy return value)
+
+         Algorithm:
+           buildEAN(pin) = hexRandom + ":" + hexChecksum + ":" + hexPIN
+             - hexRandom   : random 1..10000000 as colon-separated hex bytes
+             - hexChecksum : ASCII sum of pin bytes & 0xFF → 2-char uppercase hex
+             - hexPIN      : each UTF-8 byte of pin as 2-char hex, colon-separated
+           Encrypt EAN.getBytes("UTF-8") padded to 8-byte block with zero IV
+           Return first 16 bytes of ciphertext as 32-char lowercase hex.
+         ═══════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-encrypt-pin" doc:name="sf-encrypt-pin">
+
+        <scripting:execute engine="groovy" doc:name="3DES Encrypt PIN">
+            <scripting:code><![CDATA[
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+
+String pin         = vars['pin'] as String
+String merchantKey = vars['brandMerchantKey'] as String
+
+// ── Parse colon-hex merchant key (e.g. FD:52:25:0E:...) ──────────────────
+String[] keyHexParts = merchantKey.split(':')
+byte[] keyBytes = new byte[keyHexParts.length]
+for (int i = 0; i < keyHexParts.length; i++) {
+    keyBytes[i] = (byte) Integer.parseInt(keyHexParts[i].trim(), 16)
+}
+
+// ── Build EAN ─────────────────────────────────────────────────────────────
+// Random: 1..10000000
+long randomNum = (long)(Math.random() * 10000000L) + 1L
+String rawHex = Long.toHexString(randomNum).toUpperCase()
+if (rawHex.length() % 2 != 0) rawHex = '0' + rawHex
+List<String> randomByteList = []
+for (int i = 0; i < rawHex.length(); i += 2) {
+    randomByteList << rawHex.substring(i, i + 2)
+}
+String hexRandom = randomByteList.join(':')
+
+// Checksum: sum of ASCII values of PIN chars, keep low byte as 2-char hex
+int asciiSum = 0
+for (char c : pin.toCharArray()) asciiSum += (int) c
+String hexChecksum = String.format('%02X', asciiSum & 0xFF)
+
+// PIN: each UTF-8 byte as 2-char hex, colon-separated
+List<String> pinByteList = []
+for (byte b : pin.getBytes('UTF-8')) {
+    pinByteList << String.format('%02X', b & 0xFF)
+}
+String hexPIN = pinByteList.join(':')
+
+String ean = hexRandom + ':' + hexChecksum + ':' + hexPIN
+
+// ── Pad EAN to multiple of 8 bytes (NoPadding requirement) ───────────────
+byte[] eanBytes = ean.getBytes('UTF-8')
+int paddedLen = ((eanBytes.length + 7) / 8) * 8
+byte[] paddedBytes = new byte[paddedLen]
+System.arraycopy(eanBytes, 0, paddedBytes, 0, eanBytes.length)
+
+// ── DESede/CBC/NoPadding with 8-byte zero IV ──────────────────────────────
+SecretKeySpec keySpec = new SecretKeySpec(keyBytes, 'DESede')
+IvParameterSpec ivSpec = new IvParameterSpec(new byte[8])
+Cipher cipher = Cipher.getInstance('DESede/CBC/NoPadding')
+cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
+byte[] encrypted = cipher.doFinal(paddedBytes)
+
+// ── Return first 16 bytes as 32-char lowercase hex ────────────────────────
+StringBuilder sb = new StringBuilder()
+for (int i = 0; i < Math.min(16, encrypted.length); i++) {
+    sb.append(String.format('%02x', encrypted[i] & 0xFF))
+}
+return sb.toString()
+            ]]></scripting:code>
+        </scripting:execute>
+
+        <set-variable variableName="encryptedPin" value="#[payload]" doc:name="Set vars.encryptedPin" />
+
+        <logger level="DEBUG"
+            message="[sf-encrypt-pin] PIN encryption complete"
+            doc:name="Log encryption done" />
+
+    </sub-flow>
+
+</mule>

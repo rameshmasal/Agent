@@ -1,0 +1,205 @@
+#%RAML 1.0
+title: Newell Brands FirstData System API
+version: v1
+baseUri: https://{environment}.apis.newellbrands.com/sys/firstdata/{version}
+baseUriParameters:
+  environment:
+    description: Environment prefix (d=dev, q=qa, u=uat, p=prd)
+    enum: [d, q, u, p]
+mediaType: application/json
+protocols: [HTTPS]
+
+uses:
+  Types: firstdata-types.raml
+
+(amf.settings):
+  description: |
+    System API migrated from Apigee FirstData_Proxy_v2.
+    Supports gift card Balance, Activate, Lock (partial hold), Unlock,
+    and Merchant Key Activation against the First Data Datawire platform.
+    Requires X-Brand header to identify the calling brand (marmot | yankee candle).
+
+/balance:
+  description: Gift card balance enquiry (transaction code 2400)
+  post:
+    description: |
+      Query the available and locked balance of a gift card.
+      If merchantKeyId is not NOKEY, the PIN is 3DES-encrypted before sending to First Data.
+    headers:
+      X-Brand:
+        type: string
+        required: true
+        enum: [marmot, "yankee candle"]
+        description: Calling brand identifier — must be in the whitelisted-brands property
+    body:
+      application/json:
+        type: Types.BalanceRequest
+        example: |
+          {
+            "cardNumber": "6006200000000000",
+            "pin": "1234",
+            "currencyCode": "USD",
+            "transactionId": "TXN-20260922-001"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.BalanceResponse
+      400:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+
+/activate:
+  description: Gift card activation (transaction code 2104)
+  post:
+    description: Activate a gift card and load funds onto it.
+    headers:
+      X-Brand:
+        type: string
+        required: true
+        enum: [marmot, "yankee candle"]
+    body:
+      application/json:
+        type: Types.ActivateRequest
+        example: |
+          {
+            "cardNumber": "6006200000000000",
+            "pin": "1234",
+            "amount": 50.00,
+            "currencyCode": "USD",
+            "transactionId": "TXN-20260922-002"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.ActivateResponse
+      400:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+
+/lock:
+  description: Partial lock — reserve funds on a gift card (transaction code 2408)
+  post:
+    description: |
+      Reserve (lock) a specified amount on a gift card.
+      Returns a lockId that must be stored and used to unlock.
+      On timeout (returnCode 205 or 8), an auto-reversal is sent and HTTP 504 is returned.
+    headers:
+      X-Brand:
+        type: string
+        required: true
+        enum: [marmot, "yankee candle"]
+    body:
+      application/json:
+        type: Types.LockRequest
+        example: |
+          {
+            "cardNumber": "6006200000000000",
+            "pin": "1234",
+            "amount": 25.00,
+            "currencyCode": "USD",
+            "transactionId": "TXN-20260922-003"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.LockResponse
+      400:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      504:
+        description: Transaction timed out — auto-reversal was sent
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+
+/unlock:
+  description: Unlock — release previously locked funds (transaction code 2208)
+  post:
+    description: |
+      Release locked funds back to available balance.
+      On timeout (returnCode 205 or 8), an auto-reversal is sent and HTTP 504 is returned.
+    headers:
+      X-Brand:
+        type: string
+        required: true
+        enum: [marmot, "yankee candle"]
+    body:
+      application/json:
+        type: Types.UnlockRequest
+        example: |
+          {
+            "cardNumber": "6006200000000000",
+            "pin": "1234",
+            "amount": 25.00,
+            "currencyCode": "USD",
+            "lockId": "987654321",
+            "transactionId": "TXN-20260922-004"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.UnlockResponse
+      400:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      504:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+
+/merchantkeyactivation:
+  description: Merchant key activation (transaction code 2010)
+  post:
+    description: Activate a merchant working key — called during initial setup or key rotation.
+    headers:
+      X-Brand:
+        type: string
+        required: true
+        enum: [marmot, "yankee candle"]
+    body:
+      application/json:
+        type: Types.MerchantKeyActivationRequest
+        example: |
+          {
+            "keyId": "1002",
+            "workingKey": "ABCDEF1234567890ABCDEF1234567890",
+            "source": "30"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.MerchantKeyActivationResponse
+      400:
+        body:
+          application/json:
+            type: Types.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: Types.ErrorResponse

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+      xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+        http://www.mulesoft.org/schema/mule/secure-properties
+            http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway
+            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+
+    <!-- ── Plain Properties ──────────────────────────────────────────── -->
+    <!-- VM args: -Dmule.env=local (or dev/qa/uat/prd) -->
+    <configuration-properties
+        file="properties/sys-firstdata-api-v1-${mule.env}.yaml"
+        doc:name="Plain Configuration Properties" />
+
+    <!-- ── Secure Properties — Blowfish ──────────────────────────────── -->
+    <!-- VM args: -DmasterKey=<key>   (use any value locally; files are plain text for local/dev) -->
+    <secure-properties:config
+        name="SYS_FirstData_Secure_Properties"
+        file="properties/sys-firstdata-api-v1-${mule.env}-secure.yaml"
+        key="${masterKey}"
+        doc:name="Secure Configuration Properties">
+        <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
+    </secure-properties:config>
+
+    <!-- ── HTTP Listener (inbound) ────────────────────────────────────── -->
+    <http:listener-config name="httpListenerConfig" doc:name="HTTP Listener Config">
+        <http:listener-connection host="0.0.0.0" port="${http.listener.port}" />
+    </http:listener-config>
+
+    <!-- ── HTTP Request Config — First Data (outbound) ───────────────── -->
+    <!-- host/port are defaults; the actual URL is set dynamically via vars.targetUrl -->
+    <http:request-config name="fdHttpRequestConfig"
+        doc:name="First Data HTTP Request Config"
+        responseTimeout="30000">
+        <http:request-connection protocol="HTTPS" host="${sys.default-server-host}" port="443" />
+    </http:request-config>
+
+    <!-- ── Object Store — URL discovery cache (TTL driven by sys.url-cache-ttl) ─ -->
+    <os:object-store name="fdUrlObjectStore"
+        doc:name="First Data URL Object Store"
+        maxEntries="10"
+        entryTtl="${sys.url-cache-ttl}"
+        entryTtlUnit="SECONDS"
+        persistent="false" />
+
+    <!-- ── Global Error Handler ───────────────────────────────────────── -->
+    <error-handler name="global-error" doc:name="Global Error Handler">
+
+        <on-error-propagate type="APP:INVALID_BRAND" enableNotifications="false">
+            <set-variable variableName="httpStatus" value="#[400]" doc:name="Set HTTP 400" />
+            <set-payload
+                value='{"status":"error","code":"INVALID_BRAND","message":"Brand header is missing or not whitelisted"}'
+                mimeType="application/json"
+                doc:name="Set 400 Payload" />
+        </on-error-propagate>
+
+        <on-error-propagate type="APP:BRAND_CONFIG_NOT_FOUND" enableNotifications="false">
+            <set-variable variableName="httpStatus" value="#[400]" doc:name="Set HTTP 400" />
+            <set-payload
+                value='{"status":"error","code":"BRAND_CONFIG_NOT_FOUND","message":"No configuration found for the given brand"}'
+                mimeType="application/json"
+                doc:name="Set 400 Payload" />
+        </on-error-propagate>
+
+        <on-error-propagate type="HTTP:CONNECTIVITY,HTTP:TIMEOUT" enableNotifications="false">
+            <set-variable variableName="httpStatus" value="#[503]" doc:name="Set HTTP 503" />
+            <set-payload
+                value='{"status":"error","code":"SERVICE_UNAVAILABLE","message":"First Data endpoint is unreachable"}'
+                mimeType="application/json"
+                doc:name="Set 503 Payload" />
+        </on-error-propagate>
+
+        <on-error-propagate type="MULE:EXPRESSION" enableNotifications="false">
+            <set-variable variableName="httpStatus" value="#[422]" doc:name="Set HTTP 422" />
+            <set-payload
+                value='{"status":"error","code":"TRANSFORM_ERROR","message":"Request payload does not match expected schema"}'
+                mimeType="application/json"
+                doc:name="Set 422 Payload" />
+        </on-error-propagate>
+
+        <on-error-propagate type="ANY">
+            <set-variable variableName="httpStatus" value="#[500]" doc:name="Set HTTP 500" />
+            <set-payload
+                value='{"status":"error","code":"INTERNAL_ERROR","message":"An unexpected error occurred"}'
+                mimeType="application/json"
+                doc:name="Set 500 Payload" />
+        </on-error-propagate>
+
+    </error-handler>
+
+    <!-- ── API Autodiscovery ──────────────────────────────────────────── -->
+    <!-- Replace autodiscovery-id value with real Anypoint API Manager ID before first non-local deploy -->
+    <api-gateway:autodiscovery
+        apiId="${api.autodiscovery.id}"
+        ignoreBasePath="true"
+        flowRef="pf-main"
+        doc:name="API Autodiscovery" />
+
+</mule>

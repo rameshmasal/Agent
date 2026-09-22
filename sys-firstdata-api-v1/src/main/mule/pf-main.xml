@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+    <flow name="pf-main" doc:name="pf-main">
+
+        <http:listener
+            config-ref="httpListenerConfig"
+            path="${http.listener.path}"
+            doc:name="HTTP Listener /sys/firstdata/v1/*">
+            <!-- Success response uses httpStatus var set by each resource flow -->
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[{'Content-Type': 'application/json'}]</http:headers>
+            </http:response>
+            <!-- Error response falls back to global-error-set httpStatus -->
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers>#[{'Content-Type': 'application/json'}]</http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <logger level="INFO"
+            message="#['[pf-main] ' ++ attributes.method ++ ' ' ++ attributes.requestPath ++ ' — correlationId=' ++ correlationId]"
+            doc:name="Log Inbound Request" />
+
+        <flow-ref name="pf-router" doc:name="Route to pf-router" />
+
+        <error-handler ref="global-error" />
+
+    </flow>
+
+</mule>

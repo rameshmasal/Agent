@@ -1,0 +1,16 @@
+{
+  "statusCode": "OK",
+  "returnCode": "00",
+  "responseCode": "00",
+  "cardNumber": "6006200000000000",
+  "availableBalance": "5000",
+  "lockedAmount": "0",
+  "previousBalance": "5000",
+  "currencyCode": "USD",
+  "expirationDate": "1231",
+  "cardClass": "A",
+  "referenceNumber": "REF123456",
+  "authorizationCode": "AUTH789",
+  "traceNumber": "TRC001",
+  "success": true
+}

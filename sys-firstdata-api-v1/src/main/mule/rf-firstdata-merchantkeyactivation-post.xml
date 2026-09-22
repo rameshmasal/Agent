@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!--
+        POST /sys/firstdata/v1/merchantkeyactivation  (tx code 2010)
+        Request  : { keyId, workingKey, source }
+        Header   : X-Brand: marmot | yankee candle
+        Note     : Different payload structure — no card or PIN fields.
+                   No timeout reversal for key activation.
+    -->
+    <flow name="rf-firstdata-merchantkeyactivation-post" doc:name="rf-firstdata-merchantkeyactivation-post">
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-merchantkeyactivation-post] START correlationId=' ++ correlationId]"
+            doc:name="Log start" />
+
+        <set-variable variableName="requestPayload" value="#[payload]" doc:name="Save requestPayload" />
+
+        <set-variable
+            variableName="brand"
+            value="#[(attributes.headers.'X-Brand' default '') lower()]"
+            doc:name="Set vars.brand" />
+
+        <choice doc:name="Validate brand">
+            <when expression="#[(p('sys.whitelisted-brands') splitBy ',') contains vars.brand]">
+                <logger level="DEBUG" message="#['[rf-firstdata-merchantkeyactivation-post] brand valid: ' ++ vars.brand]" doc:name="Log valid brand" />
+            </when>
+            <otherwise>
+                <raise-error type="APP:INVALID_BRAND"
+                    description="#['Brand not whitelisted: ' ++ vars.brand]" />
+            </otherwise>
+        </choice>
+
+        <flow-ref name="sf-build-brand-config" doc:name="Build brand config" />
+        <flow-ref name="sf-url-discovery" doc:name="Discover target URL" />
+
+        <!-- MerchantKeyActivation has its own payload structure (no PIN encryption) -->
+        <ee:transform doc:name="Build FD merchant key payload string">
+            <ee:variables>
+                <ee:set-variable variableName="fdPayload" resource="transformdata/request-to-firstdata-merchantkey.dwl" />
+            </ee:variables>
+        </ee:transform>
+
+        <ee:transform doc:name="Build XML request">
+            <ee:message>
+                <ee:set-payload><![CDATA[
+%dw 2.0
+import floor from dw::core::Math
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.brandConfig.did,
+      App: vars.brandConfig.appId,
+      Auth: vars.brandConfig.merchantId ++ "|" ++ vars.brandConfig.tid,
+      ClientRef: ((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')
+    },
+    Transaction: {
+      ServiceID: vars.brandConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.fdPayload
+    }
+  }
+}
+                ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-merchantkeyactivation-post] calling FD url=' ++ vars.targetUrl]"
+            doc:name="Log FD call" />
+
+        <http:request
+            method="POST"
+            url="#[vars.targetUrl]"
+            config-ref="fdHttpRequestConfig"
+            doc:name="POST to First Data (merchant key activation)">
+            <http:headers>
+                <http:header key="Content-Type" value="application/xml; charset=utf-8" />
+                <http:header key="User-Agent" value="${sys.user-agent}" />
+            </http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="200..299" />
+            </http:response-validator>
+        </http:request>
+
+        <!-- Return parsed status; field parsing is minimal for key activation -->
+        <ee:transform doc:name="Parse FD merchant key activation response">
+            <ee:message>
+                <ee:set-payload><![CDATA[
+%dw 2.0
+input payload application/xml
+output application/json
+var statusCode  = payload.Response.Status.StatusCode as String default "UNKNOWN"
+var returnCode  = payload.Response.TransactionResponse.ReturnCode as String default ""
+---
+{
+    statusCode:  statusCode,
+    returnCode:  returnCode,
+    success:     (statusCode == "OK" and returnCode == "00")
+}
+                ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <set-variable variableName="httpStatus" value="#[200]" doc:name="Set HTTP 200" />
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-merchantkeyactivation-post] DONE returnCode=' ++ (payload.returnCode default 'N/A')]"
+            doc:name="Log done" />
+
+        <error-handler ref="global-error" />
+
+    </flow>
+
+</mule>
