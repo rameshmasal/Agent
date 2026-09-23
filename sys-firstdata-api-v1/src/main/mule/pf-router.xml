@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core
-            http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/documentation
+            http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
 
     <!--
         Manual router — dispatches on HTTP method + trailing path segment.

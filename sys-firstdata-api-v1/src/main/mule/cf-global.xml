@@ -5,6 +5,7 @@
       xmlns:os="http://www.mulesoft.org/schema/mule/os"
       xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
       xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core
             http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -15,7 +16,9 @@
         http://www.mulesoft.org/schema/mule/secure-properties
             http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
         http://www.mulesoft.org/schema/mule/api-gateway
-            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/documentation
+            http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
 
     <!-- ── Plain Properties ──────────────────────────────────────────── -->
     <!-- VM args: -Dmule.env=local (or dev/qa/uat/prd) -->
