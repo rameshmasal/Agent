@@ -1,38 +1,45 @@
-# sys-firstdata-api-v1-uat.yaml
 # UAT environment — staging endpoints (UAT uses staging per Apigee KVM config)
+# VM args: -Denv=uat -DmasterKey=<key>
 
-sys-firstdata.http-listener.port: "8081"
-sys-firstdata.http-listener.path: "/sys/firstdata/v1/*"
+sys-firstdata:
+  http-listener:
+    port: "8081"
+    path: "/sys/firstdata/v1/*"
 
-sys-firstdata-api.http-listener.autodiscovery-id: "0"
+sys-firstdata-api:
+  http-listener:
+    autodiscovery-id: "0"
 
-sys.server.hosts: "staging1.datawire.net:443,staging2.datawire.net:443"
-sys.default-server-host: "staging1.datawire.net"
-sys.path-suffix: "sd"
-sys.service-id: "104"
-sys.request-version: "3"
-sys.application-version: "V001000"
-sys.payload-encoding: "datawire"
-sys.transaction-prefix: "SV."
-sys.field-separator: "|1C"
-sys.user-agent: "vxnapi_xml_3_2_0_19"
+sys:
+  server:
+    hosts: "staging1.datawire.net:443,staging2.datawire.net:443"
+  default-server-host: "staging1.datawire.net"
+  path-suffix: "sd"
+  service-id: "104"
+  request-version: "3"
+  application-version: "V001000"
+  payload-encoding: "datawire"
+  transaction-prefix: "SV."
+  field-separator: "|1C"
+  user-agent: "vxnapi_xml_3_2_0_19"
+  timeout-responses: "205,8"
+  invalidate-cache-responses: "8"
+  url-cache-ttl: "300"
+  whitelisted-brands: "yankee candle,marmot"
+  app-id: "NWLECOMMWGIFTXML"
+  tid: "00000000002"
 
-sys.timeout-responses: "205,8"
-sys.invalidate-cache-responses: "8"
-sys.url-cache-ttl: "300"
+marmot:
+  terminal-id: "0002"
+  merchant-key-id: "NOKEY"
+  source-code: "30"
+  activate-promo-code: "79234"
 
-sys.whitelisted-brands: "yankee candle,marmot"
-sys.app-id: "NWLECOMMWGIFTXML"
-sys.tid: "00000000002"
+yankee-candle:
+  terminal-id: "0001"
+  merchant-key-id: "1002"
+  source-code: "30"
+  activate-promo-code: "30253"
 
-marmot.terminal-id: "0002"
-marmot.merchant-key-id: "NOKEY"
-marmot.source-code: "30"
-marmot.activate-promo-code: "79234"
-
-yankee-candle.terminal-id: "0001"
-yankee-candle.merchant-key-id: "1002"
-yankee-candle.source-code: "30"
-yankee-candle.activate-promo-code: "30253"
-
-notification.enabled: "true"
+notification:
+  enabled: "true"
