@@ -21,27 +21,27 @@
          Each dispatcher delegates to the Newell-named rf-* flow.
     ──────────────────────────────────────────────────────────────────── -->
 
-    <flow name="post:/balance:application/json:sys-firstdata-api-v1-config"
+    <flow name="post:\balance:application/json:sys-firstdata-api-v1-config"
           doc:name="post:/balance dispatch">
         <flow-ref name="rf-firstdata-balance-post" doc:name="rf-firstdata-balance-post" />
     </flow>
 
-    <flow name="post:/activate:application/json:sys-firstdata-api-v1-config"
+    <flow name="post:\activate:application/json:sys-firstdata-api-v1-config"
           doc:name="post:/activate dispatch">
         <flow-ref name="rf-firstdata-activate-post" doc:name="rf-firstdata-activate-post" />
     </flow>
 
-    <flow name="post:/lock:application/json:sys-firstdata-api-v1-config"
+    <flow name="post:\lock:application/json:sys-firstdata-api-v1-config"
           doc:name="post:/lock dispatch">
         <flow-ref name="rf-firstdata-lock-post" doc:name="rf-firstdata-lock-post" />
     </flow>
 
-    <flow name="post:/unlock:application/json:sys-firstdata-api-v1-config"
+    <flow name="post:\unlock:application/json:sys-firstdata-api-v1-config"
           doc:name="post:/unlock dispatch">
         <flow-ref name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post" />
     </flow>
 
-    <flow name="post:/merchantkeyactivation:application/json:sys-firstdata-api-v1-config"
+    <flow name="post:\merchantkeyactivation:application/json:sys-firstdata-api-v1-config"
           doc:name="post:/merchantkeyactivation dispatch">
         <flow-ref name="rf-firstdata-merchantkeyactivation-post" doc:name="rf-firstdata-merchantkeyactivation-post" />
     </flow>

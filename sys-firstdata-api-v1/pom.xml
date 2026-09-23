@@ -24,13 +24,14 @@
 
   <dependencies>
 
-    <!-- Newell Common Core — global error handler, notification sub-flow -->
+    <!-- Newell Common Core — add once Exchange credentials are configured in ~/.m2/settings.xml
     <dependency>
       <groupId>com.newellbrands</groupId>
       <artifactId>newell-common-core-v1</artifactId>
       <version>1.0.0</version>
       <classifier>mule-plugin</classifier>
     </dependency>
+    -->
 
     <!-- ── Core Connectors ─────────────────────────────────────── -->
     <dependency>
