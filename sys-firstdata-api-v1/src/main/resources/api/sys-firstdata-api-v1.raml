@@ -12,12 +12,13 @@ protocols: [HTTPS]
 uses:
   Types: firstdata-types.raml
 
-(amf.settings):
-  description: |
-    System API migrated from Apigee FirstData_Proxy_v2.
-    Supports gift card Balance, Activate, Lock (partial hold), Unlock,
-    and Merchant Key Activation against the First Data Datawire platform.
-    Requires X-Brand header to identify the calling brand (marmot | yankee candle).
+documentation:
+  - title: Overview
+    content: |
+      System API migrated from Apigee FirstData_Proxy_v2.
+      Supports gift card Balance, Activate, Lock (partial hold), Unlock,
+      and Merchant Key Activation against the First Data Datawire platform.
+      Requires X-Brand header to identify the calling brand (marmot | yankee candle).
 
 /balance:
   description: Gift card balance enquiry (transaction code 2400)
