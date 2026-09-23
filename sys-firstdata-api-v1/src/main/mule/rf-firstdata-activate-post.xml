@@ -31,7 +31,7 @@
 
         <set-variable
             variableName="brand"
-            value="#[(attributes.headers.'X-Brand' default '') lower()]"
+            value="#[lower(attributes.headers.'X-Brand' default '')]"
             doc:name="Set vars.brand" />
 
         <choice doc:name="Validate brand">
