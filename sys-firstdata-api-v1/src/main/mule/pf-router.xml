@@ -45,7 +45,16 @@
             <on-error-propagate type="APIKIT:BAD_REQUEST" enableNotifications="true" logException="true">
                 <ee:transform doc:name="400 Bad Request">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/400error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "400",
+        "status":  "BAD_REQUEST",
+        "message": error.description default "Bad Request"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
@@ -55,7 +64,16 @@
             <on-error-propagate type="APIKIT:NOT_FOUND" enableNotifications="true" logException="true">
                 <ee:transform doc:name="404 Not Found">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/404-error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "404",
+        "status":  "NOT_FOUND",
+        "message": error.description default "Resource Not Found"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
@@ -65,7 +83,16 @@
             <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
                 <ee:transform doc:name="405 Method Not Allowed">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/405-error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "405",
+        "status":  "METHOD_NOT_ALLOWED",
+        "message": error.description default "Method Not Allowed"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
@@ -75,7 +102,16 @@
             <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
                 <ee:transform doc:name="406 Not Acceptable">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/406-error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "406",
+        "status":  "NOT_ACCEPTABLE",
+        "message": error.description default "Not Acceptable"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[406]]></ee:set-variable>
@@ -85,7 +121,16 @@
             <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
                 <ee:transform doc:name="415 Unsupported Media Type">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/415-error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "415",
+        "status":  "UNSUPPORTED_MEDIA_TYPE",
+        "message": error.description default "Unsupported Media Type"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
@@ -95,7 +140,16 @@
             <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
                 <ee:transform doc:name="501 Not Implemented">
                     <ee:message>
-                        <ee:set-payload resource="transformdata/501-error.dwl"/>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "501",
+        "status":  "NOT_IMPLEMENTED",
+        "message": error.description default "Not Implemented"
+    }
+}]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[501]]></ee:set-variable>
@@ -157,16 +211,6 @@ output application/json
                     <ee:variables>
                         <ee:set-variable variableName="httpStatus"><![CDATA[503]]></ee:set-variable>
                     </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-            <on-error-propagate type="APP:ERROR" enableNotifications="true" logException="true">
-                <ee:transform doc:name="Transform Message">
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-vars.app_error]]></ee:set-payload>
-                    </ee:message>
                 </ee:transform>
             </on-error-propagate>
             <on-error-propagate type="ANY">

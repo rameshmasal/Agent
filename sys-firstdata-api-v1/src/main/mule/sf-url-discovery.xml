@@ -71,7 +71,6 @@ output application/java
                         <os:store
                             key="fd_current_url"
                             objectStore="fdUrlObjectStore"
-                            failOnAlreadyExists="false"
                             doc:name="Cache fd_current_url from list">
                             <os:value>#[vars.targetUrl]</os:value>
                         </os:store>
@@ -128,10 +127,13 @@ output application/xml encoding="UTF-8"
                                     url="#['https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.brandConfig.serviceId]"
                                     config-ref="fdHttpRequestConfig"
                                     doc:name="Ping First Data host">
-                                    <http:headers>
-                                        <http:header key="User-Agent" value="${sys.user-agent}" />
-                                        <http:header key="Content-Type" value="application/xml; charset=utf-8" />
-                                    </http:headers>
+                                    <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "Content-Type" : "application/xml; charset=utf-8",
+    "User-Agent"   : p('sys.user-agent')
+}]]]></http:headers>
                                     <http:response-validator>
                                         <http:success-status-code-validator values="200..599" />
                                     </http:response-validator>
@@ -173,14 +175,12 @@ sorted[0].url
                         <os:store
                             key="fd_current_url"
                             objectStore="fdUrlObjectStore"
-                            failOnAlreadyExists="false"
                             doc:name="Cache fastest URL">
                             <os:value>#[vars.targetUrl]</os:value>
                         </os:store>
                         <os:store
                             key="fd_urls_list"
                             objectStore="fdUrlObjectStore"
-                            failOnAlreadyExists="false"
                             doc:name="Cache sorted URL list">
                             <os:value>#[vars.sortedUrlList]</os:value>
                         </os:store>
