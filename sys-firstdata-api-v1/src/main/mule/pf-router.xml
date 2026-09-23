@@ -11,47 +11,39 @@
         http://www.mulesoft.org/schema/mule/documentation
             http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
 
-    <!-- APIKit router — reads sys-firstdata-api-v1.raml and dispatches to
-         flows named by the convention:  {method}:/{resource}:application/json:sys-firstdata-api-v1-config -->
     <flow name="pf-router" doc:name="pf-router">
         <apikit:router config-ref="sys-firstdata-api-v1-config" doc:name="APIKit Router" />
-        <error-handler>
-            <on-error-propagate type="APIKIT:NOT_FOUND">
-                <set-variable variableName="httpStatus" value="#[404]" doc:name="Set 404" />
-                <set-payload
-                    value='{"status":"error","code":"NOT_FOUND","message":"Resource not found"}'
-                    mimeType="application/json"
-                    doc:name="404 Payload" />
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
-                <set-variable variableName="httpStatus" value="#[405]" doc:name="Set 405" />
-                <set-payload
-                    value='{"status":"error","code":"METHOD_NOT_ALLOWED","message":"HTTP method not allowed on this resource"}'
-                    mimeType="application/json"
-                    doc:name="405 Payload" />
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
-                <set-variable variableName="httpStatus" value="#[415]" doc:name="Set 415" />
-                <set-payload
-                    value='{"status":"error","code":"UNSUPPORTED_MEDIA_TYPE","message":"Content-Type must be application/json"}'
-                    mimeType="application/json"
-                    doc:name="415 Payload" />
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
-                <set-variable variableName="httpStatus" value="#[406]" doc:name="Set 406" />
-                <set-payload
-                    value='{"status":"error","code":"NOT_ACCEPTABLE","message":"Accept header is not acceptable"}'
-                    mimeType="application/json"
-                    doc:name="406 Payload" />
-            </on-error-propagate>
-            <on-error-propagate type="APIKIT:BAD_REQUEST">
-                <set-variable variableName="httpStatus" value="#[400]" doc:name="Set 400" />
-                <set-payload
-                    value='{"status":"error","code":"BAD_REQUEST","message":"Request does not conform to the API contract"}'
-                    mimeType="application/json"
-                    doc:name="400 Payload" />
-            </on-error-propagate>
-        </error-handler>
+        <error-handler ref="global-error" />
+    </flow>
+
+    <!-- ── Dispatcher flows — one per RAML operation ─────────────────────
+         APIKit resolves the flow by name: {method}:/{resource}:application/json:{config-name}
+         Each dispatcher delegates to the Newell-named rf-* flow.
+    ──────────────────────────────────────────────────────────────────── -->
+
+    <flow name="post:/balance:application/json:sys-firstdata-api-v1-config"
+          doc:name="post:/balance dispatch">
+        <flow-ref name="rf-firstdata-balance-post" doc:name="rf-firstdata-balance-post" />
+    </flow>
+
+    <flow name="post:/activate:application/json:sys-firstdata-api-v1-config"
+          doc:name="post:/activate dispatch">
+        <flow-ref name="rf-firstdata-activate-post" doc:name="rf-firstdata-activate-post" />
+    </flow>
+
+    <flow name="post:/lock:application/json:sys-firstdata-api-v1-config"
+          doc:name="post:/lock dispatch">
+        <flow-ref name="rf-firstdata-lock-post" doc:name="rf-firstdata-lock-post" />
+    </flow>
+
+    <flow name="post:/unlock:application/json:sys-firstdata-api-v1-config"
+          doc:name="post:/unlock dispatch">
+        <flow-ref name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post" />
+    </flow>
+
+    <flow name="post:/merchantkeyactivation:application/json:sys-firstdata-api-v1-config"
+          doc:name="post:/merchantkeyactivation dispatch">
+        <flow-ref name="rf-firstdata-merchantkeyactivation-post" doc:name="rf-firstdata-merchantkeyactivation-post" />
     </flow>
 
 </mule>

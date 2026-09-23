@@ -1,10 +1,10 @@
 # sys-firstdata-api-v1-uat.yaml
 # UAT environment — staging endpoints (UAT uses staging per Apigee KVM config)
 
-http.listener.port: "8081"
-http.listener.path: "/sys/firstdata/v1/*"
+sys-firstdata.http-listener.port: "8081"
+sys-firstdata.http-listener.path: "/sys/firstdata/v1/*"
 
-api.autodiscovery.id: "0"
+sys-firstdata-api.http-listener.autodiscovery-id: "0"
 
 sys.server.hosts: "staging1.datawire.net:443,staging2.datawire.net:443"
 sys.default-server-host: "staging1.datawire.net"

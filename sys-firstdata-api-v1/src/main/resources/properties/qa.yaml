@@ -1,11 +1,10 @@
-# sys-firstdata-api-v1-dev.yaml
-# Development environment
+# sys-firstdata-api-v1-qa.yaml
+# QA environment — same First Data staging endpoints as dev
 
-http.listener.port: "8081"
-http.listener.path: "/sys/firstdata/v1/*"
+sys-firstdata.http-listener.port: "8081"
+sys-firstdata.http-listener.path: "/sys/firstdata/v1/*"
 
-# Replace with real Anypoint API Manager ID for dev
-api.autodiscovery.id: "0"
+sys-firstdata-api.http-listener.autodiscovery-id: "0"
 
 sys.server.hosts: "staging1.datawire.net:443,staging2.datawire.net:443"
 sys.default-server-host: "staging1.datawire.net"

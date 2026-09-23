@@ -5,7 +5,6 @@
       xmlns:os="http://www.mulesoft.org/schema/mule/os"
       xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
       xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
-      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
       xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core
@@ -18,22 +17,20 @@
             http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
         http://www.mulesoft.org/schema/mule/api-gateway
             http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
-        http://www.mulesoft.org/schema/mule/mule-apikit
-            http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
         http://www.mulesoft.org/schema/mule/documentation
             http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
 
     <!-- ── Plain Properties ──────────────────────────────────────────── -->
     <!-- VM args: -Dmule.env=local (or dev/qa/uat/prd) -->
     <configuration-properties
-        file="properties/sys-firstdata-api-v1-${mule.env}.yaml"
+        file="properties/${mule.env}.yaml"
         doc:name="Plain Configuration Properties" />
 
     <!-- ── Secure Properties — Blowfish ──────────────────────────────── -->
     <!-- VM args: -DmasterKey=<key>   (use any value locally; files are plain text for local/dev) -->
     <secure-properties:config
-        name="SYS_FirstData_Secure_Properties"
-        file="properties/sys-firstdata-api-v1-${mule.env}-secure.yaml"
+        name="SYS_FirstData_Secure_Properties_Config"
+        file="properties/${mule.env}-secure.yaml"
         key="${masterKey}"
         doc:name="Secure Configuration Properties">
         <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
@@ -41,7 +38,7 @@
 
     <!-- ── HTTP Listener (inbound) ────────────────────────────────────── -->
     <http:listener-config name="httpListenerConfig" doc:name="HTTP Listener Config">
-        <http:listener-connection host="0.0.0.0" port="${http.listener.port}" />
+        <http:listener-connection host="0.0.0.0" port="${sys-firstdata.http-listener.port}" />
     </http:listener-config>
 
     <!-- ── HTTP Request Config — First Data (outbound) ───────────────── -->
@@ -105,18 +102,10 @@
 
     </error-handler>
 
-    <!-- ── APIKit Router Config ─────────────────────────────────────────── -->
-    <apikit:config
-        name="sys-firstdata-api-v1-config"
-        api="api/sys-firstdata-api-v1.raml"
-        outboundHeadersMapName="outboundHeaders"
-        httpStatusVarName="httpStatus"
-        doc:name="APIKit Config" />
-
     <!-- ── API Autodiscovery ──────────────────────────────────────────── -->
     <!-- Replace autodiscovery-id value with real Anypoint API Manager ID before first non-local deploy -->
     <api-gateway:autodiscovery
-        apiId="${api.autodiscovery.id}"
+        apiId="${sys-firstdata-api.http-listener.autodiscovery-id}"
         ignoreBasePath="true"
         flowRef="pf-main"
         doc:name="API Autodiscovery" />

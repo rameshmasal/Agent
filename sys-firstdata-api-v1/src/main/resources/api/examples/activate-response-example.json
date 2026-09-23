@@ -1,0 +1,10 @@
+{
+  "statusCode": "00",
+  "returnCode": "000",
+  "cardNumber": "6006200000000000",
+  "availableBalance": "50.00",
+  "lockedAmount": "0.00",
+  "previousBalance": "0.00",
+  "currencyCode": "840",
+  "cardClass": "GV"
+}

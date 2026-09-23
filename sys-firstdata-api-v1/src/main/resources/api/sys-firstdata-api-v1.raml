@@ -1,15 +1,19 @@
 #%RAML 1.0
 title: Newell Brands FirstData System API
 version: v1
-baseUri: https://{environment}.apis.newellbrands.com/sys/firstdata/{version}
+baseUri: https://{environment}.apis.newellbrands.com/{tier}/firstdata/{version}
 baseUriParameters:
   environment:
     description: Environment prefix (d=dev, q=qa, u=uat, p=prd)
     enum: [d, q, u, p]
+  tier:
+    description: API tier
+    default: sys
 mediaType: application/json
 protocols: [HTTPS]
 
 uses:
+  NewellLib: exchange_modules/REPLACE_WITH_NEWELL_ORG_ID/newell-raml-library/1.0.12/newell-raml-library.raml
   Types: firstdata-types.raml
 
 documentation:
@@ -50,11 +54,11 @@ documentation:
       400:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       503:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
 
 /activate:
   description: Gift card activation (transaction code 2104)
@@ -84,11 +88,11 @@ documentation:
       400:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       503:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
 
 /lock:
   description: Partial lock — reserve funds on a gift card (transaction code 2408)
@@ -121,16 +125,16 @@ documentation:
       400:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       504:
         description: Transaction timed out — auto-reversal was sent
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       503:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
 
 /unlock:
   description: Unlock — release previously locked funds (transaction code 2208)
@@ -163,15 +167,15 @@ documentation:
       400:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       504:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       503:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
 
 /merchantkeyactivation:
   description: Merchant key activation (transaction code 2010)
@@ -199,8 +203,8 @@ documentation:
       400:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse
       503:
         body:
           application/json:
-            type: Types.ErrorResponse
+            type: NewellLib.ErrorResponse

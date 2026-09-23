@@ -21,7 +21,7 @@
         Timeout  : if returnCode in [205,8] → send auto-reversal (code=0704)
                    and return HTTP 504 with timeout error body
     -->
-    <flow name="post:/lock:application/json:sys-firstdata-api-v1-config" doc:name="post:/lock:application/json:sys-firstdata-api-v1-config">
+    <flow name="rf-firstdata-lock-post" doc:name="rf-firstdata-lock-post">
 
         <logger level="INFO"
             message="#['[rf-firstdata-lock-post] START correlationId=' ++ correlationId]"

@@ -2,28 +2,36 @@
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
       xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core
             http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http
             http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit
+            http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
         http://www.mulesoft.org/schema/mule/documentation
             http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
+
+    <apikit:config
+        name="sys-firstdata-api-v1-config"
+        api="api/sys-firstdata-api-v1.raml"
+        outboundHeadersMapName="outboundHeaders"
+        httpStatusVarName="httpStatus"
+        doc:name="APIKit Config" />
 
     <flow name="pf-main" doc:name="pf-main">
 
         <http:listener
             config-ref="httpListenerConfig"
-            path="${http.listener.path}"
+            path="${sys-firstdata.http-listener.path}"
             doc:name="HTTP Listener /sys/firstdata/v1/*">
-            <!-- Success response uses httpStatus var set by each resource flow -->
             <http:response statusCode="#[vars.httpStatus default 200]">
-                <http:headers>#[{'Content-Type': 'application/json'}]</http:headers>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:response>
-            <!-- Error response falls back to global-error-set httpStatus -->
             <http:error-response statusCode="#[vars.httpStatus default 500]">
-                <http:headers>#[{'Content-Type': 'application/json'}]</http:headers>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
 

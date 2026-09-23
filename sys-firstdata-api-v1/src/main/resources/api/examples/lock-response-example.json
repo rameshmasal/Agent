@@ -1,0 +1,9 @@
+{
+  "statusCode": "00",
+  "returnCode": "000",
+  "cardNumber": "6006200000000000",
+  "lockId": "987654321",
+  "availableBalance": "25.00",
+  "lockedAmount": "25.00",
+  "currencyCode": "840"
+}

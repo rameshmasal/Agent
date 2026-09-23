@@ -15,6 +15,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <mule.version>4.4.0</mule.version>
     <app.runtime>4.4.0</app.runtime>
     <munit.version>2.3.12</munit.version>
     <!-- Replace with real Newell Anypoint org ID before Exchange publish -->
@@ -22,6 +23,14 @@
   </properties>
 
   <dependencies>
+
+    <!-- Newell Common Core — global error handler, notification sub-flow -->
+    <dependency>
+      <groupId>com.newellbrands</groupId>
+      <artifactId>newell-common-core-v1</artifactId>
+      <version>1.0.0</version>
+      <classifier>mule-plugin</classifier>
+    </dependency>
 
     <!-- ── Core Connectors ─────────────────────────────────────── -->
     <dependency>
@@ -111,7 +120,7 @@
       <plugin>
         <groupId>org.mule.tools.maven</groupId>
         <artifactId>mule-maven-plugin</artifactId>
-        <version>4.7.0</version>
+        <version>3.8.3</version>
         <extensions>true</extensions>
         <configuration>
           <classifier>mule-application</classifier>
@@ -140,11 +149,10 @@
             <requiredResourceCoverage>0</requiredResourceCoverage>
             <requiredFlowCoverage>0</requiredFlowCoverage>
             <formats>
-              <format>console</format>
               <format>html</format>
             </formats>
           </coverage>
-          <runtimeVersion>${app.runtime}</runtimeVersion>
+          <runtimeVersion>${mule.version}</runtimeVersion>
           <!-- Prevent port conflicts in local MUnit runs -->
           <maxParallelTests>1</maxParallelTests>
         </configuration>

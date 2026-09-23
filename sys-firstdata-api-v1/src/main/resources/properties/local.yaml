@@ -2,10 +2,10 @@
 # Local development — points at UAT/staging First Data endpoints
 # VM args: -Dmule.env=local -DmasterKey=localkey
 
-http.listener.port: "8081"
-http.listener.path: "/sys/firstdata/v1/*"
+sys-firstdata.http-listener.port: "8081"
+sys-firstdata.http-listener.path: "/sys/firstdata/v1/*"
 
-api.autodiscovery.id: "0"
+sys-firstdata-api.http-listener.autodiscovery-id: "0"
 
 # ── First Data connection ─────────────────────────────────────────────────
 # For local testing, uses staging hosts (same as dev/qa)

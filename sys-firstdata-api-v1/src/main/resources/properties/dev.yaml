@@ -1,15 +1,14 @@
-# sys-firstdata-api-v1-prd.yaml
-# PRODUCTION — vxn.datawire.net and vxn1.datawire.net endpoints
+# sys-firstdata-api-v1-dev.yaml
+# Development environment
 
-http.listener.port: "8081"
-http.listener.path: "/sys/firstdata/v1/*"
+sys-firstdata.http-listener.port: "8081"
+sys-firstdata.http-listener.path: "/sys/firstdata/v1/*"
 
-# Replace with real Anypoint API Manager ID for production
-api.autodiscovery.id: "0"
+# Replace with real Anypoint API Manager ID for dev
+sys-firstdata-api.http-listener.autodiscovery-id: "0"
 
-# Production First Data hosts
-sys.server.hosts: "vxn.datawire.net:443,vxn1.datawire.net:443"
-sys.default-server-host: "vxn.datawire.net"
+sys.server.hosts: "staging1.datawire.net:443,staging2.datawire.net:443"
+sys.default-server-host: "staging1.datawire.net"
 sys.path-suffix: "sd"
 sys.service-id: "104"
 sys.request-version: "3"
@@ -27,7 +26,6 @@ sys.whitelisted-brands: "yankee candle,marmot"
 sys.app-id: "NWLECOMMWGIFTXML"
 sys.tid: "00000000002"
 
-# Production terminal IDs may differ — update as required
 marmot.terminal-id: "0002"
 marmot.merchant-key-id: "NOKEY"
 marmot.source-code: "30"
