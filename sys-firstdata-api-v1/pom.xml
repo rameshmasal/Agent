@@ -31,6 +31,14 @@
       <classifier>mule-plugin</classifier>
     </dependency>
 
+    <!-- APIKit — RAML-driven routing and validation -->
+    <dependency>
+      <groupId>org.mule.modules</groupId>
+      <artifactId>mule-apikit-module</artifactId>
+      <version>1.7.4</version>
+      <classifier>mule-plugin</classifier>
+    </dependency>
+
     <!-- Object Store v2 — URL caching for First Data endpoints -->
     <dependency>
       <groupId>org.mule.connectors</groupId>

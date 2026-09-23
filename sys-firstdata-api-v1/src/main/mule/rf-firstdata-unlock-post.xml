@@ -20,7 +20,7 @@
         Header   : X-Brand: marmot | yankee candle
         Timeout  : if returnCode in [205,8] → send auto-reversal (code=0704)
     -->
-    <flow name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post">
+    <flow name="post:/unlock:application/json:sys-firstdata-api-v1-config" doc:name="post:/unlock:application/json:sys-firstdata-api-v1-config">
 
         <logger level="INFO"
             message="#['[rf-firstdata-unlock-post] START correlationId=' ++ correlationId]"

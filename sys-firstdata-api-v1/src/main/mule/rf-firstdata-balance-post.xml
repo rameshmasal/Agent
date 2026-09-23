@@ -21,7 +21,7 @@
         Response : { statusCode, returnCode, cardNumber, availableBalance,
                      lockedAmount, previousBalance, currencyCode, ... }
     -->
-    <flow name="rf-firstdata-balance-post" doc:name="rf-firstdata-balance-post">
+    <flow name="post:/balance:application/json:sys-firstdata-api-v1-config" doc:name="post:/balance:application/json:sys-firstdata-api-v1-config">
 
         <logger level="INFO"
             message="#['[rf-firstdata-balance-post] START correlationId=' ++ correlationId]"

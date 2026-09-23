@@ -21,7 +21,7 @@
         Note     : Different payload structure — no card or PIN fields.
                    No timeout reversal for key activation.
     -->
-    <flow name="rf-firstdata-merchantkeyactivation-post" doc:name="rf-firstdata-merchantkeyactivation-post">
+    <flow name="post:/merchantkeyactivation:application/json:sys-firstdata-api-v1-config" doc:name="post:/merchantkeyactivation:application/json:sys-firstdata-api-v1-config">
 
         <logger level="INFO"
             message="#['[rf-firstdata-merchantkeyactivation-post] START correlationId=' ++ correlationId]"

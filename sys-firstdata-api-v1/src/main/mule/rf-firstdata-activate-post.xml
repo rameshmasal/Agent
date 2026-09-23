@@ -21,7 +21,7 @@
         Note     : PIN is always treated as needing encryption for activate
                    (if NOKEY, plain PIN is sent — First Data may reject).
     -->
-    <flow name="rf-firstdata-activate-post" doc:name="rf-firstdata-activate-post">
+    <flow name="post:/activate:application/json:sys-firstdata-api-v1-config" doc:name="post:/activate:application/json:sys-firstdata-api-v1-config">
 
         <logger level="INFO"
             message="#['[rf-firstdata-activate-post] START correlationId=' ++ correlationId]"
