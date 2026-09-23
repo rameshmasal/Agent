@@ -17,8 +17,5 @@ target/
 .DS_Store
 Thumbs.db
 
-# Credentials — never commit decrypted secrets
-src/main/resources/properties/*-secure.yaml
-
 # Log files
 *.log

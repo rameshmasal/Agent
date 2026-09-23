@@ -1,0 +1,15 @@
+# LOCAL — plain text (no Blowfish encryption needed for local runs)
+# Unencrypted values are returned as-is by the secure-properties module.
+# IMPORTANT: Never commit this file if it contains real production credentials.
+
+marmot:
+  merchant-id: "99021809997"
+  merchant-key: "FD:52:25:0E:23:0D:1C:DF:D5:C2:DF:0D:57:E3:E0:FE:FD:52:25:0E:23:0D:1C:DF"
+  did: "00055233918678049556"
+
+yankee-candle:
+  merchant-id: "99033549997"
+  merchant-key: "d6:a4:02:34:f2:64:2c:b6:26:89:94:68:94:4c:c4:e9:d6:a4:02:34:f2:64:2c:b6"
+  did: "00040979226950670608"
+
+masterKey: "localkey"
