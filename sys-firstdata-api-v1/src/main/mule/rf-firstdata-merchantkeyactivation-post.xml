@@ -48,7 +48,23 @@
         <!-- MerchantKeyActivation has its own payload structure (no PIN encryption) -->
         <ee:transform doc:name="Build FD merchant key payload string">
             <ee:variables>
-                <ee:set-variable variableName="fdPayload" resource="transformdata/request-to-firstdata-merchantkey.dwl" />
+                <ee:set-variable variableName="fdPayload"><![CDATA[%dw 2.0
+output text/plain
+var sep = "|1C"
+var bc  = vars.brandConfig
+var req = vars.requestPayload
+var dateStr = now() as String {format: "MMddyyyy"}
+var timeStr = now() as String {format: "HHmmss"}
+---
+"SV." ++ bc.merchantId ++ sep ++
+"40" ++ "2010"           ++ sep ++
+"42" ++ bc.merchantId ++ bc.terminalId ++ sep ++
+"13" ++ dateStr          ++ sep ++
+"12" ++ timeStr          ++ sep ++
+"F3" ++ (req.keyId as String)        ++ sep ++
+"EA" ++ (req.source as String)       ++ sep ++
+"63" ++ (req.workingKey as String)   ++ sep ++
+"7F" ++ "1212"]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
 
