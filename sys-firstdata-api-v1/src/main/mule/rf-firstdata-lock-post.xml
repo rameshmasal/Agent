@@ -207,7 +207,6 @@ output application/xml encoding="UTF-8"
             message="#['[rf-firstdata-lock-post] DONE httpStatus=' ++ (vars.httpStatus as String)]"
             doc:name="Log done" />
 
-        <error-handler ref="global-error" />
 
     </flow>
 

@@ -132,7 +132,6 @@ output application/xml encoding="UTF-8"
             message="#['[rf-firstdata-balance-post] DONE returnCode=' ++ (payload.returnCode default 'N/A')]"
             doc:name="Log done" />
 
-        <error-handler ref="global-error" />
 
     </flow>
 

@@ -122,7 +122,6 @@ var returnCode  = payload.Response.TransactionResponse.ReturnCode as String defa
             message="#['[rf-firstdata-merchantkeyactivation-post] DONE returnCode=' ++ (payload.returnCode default 'N/A')]"
             doc:name="Log done" />
 
-        <error-handler ref="global-error" />
 
     </flow>
 
