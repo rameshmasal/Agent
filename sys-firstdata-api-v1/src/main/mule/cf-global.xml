@@ -16,9 +16,7 @@
         http://www.mulesoft.org/schema/mule/secure-properties
             http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
         http://www.mulesoft.org/schema/mule/api-gateway
-            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
-        http://www.mulesoft.org/schema/mule/documentation
-            http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
+            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
 
     <!-- ── Plain Properties — set -Denv=local|dev|qa|uat|prd at runtime ── -->
     <configuration-properties

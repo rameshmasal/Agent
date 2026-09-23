@@ -13,9 +13,7 @@
         http://www.mulesoft.org/schema/mule/mule-apikit
             http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
         http://www.mulesoft.org/schema/mule/ee/core
-            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-        http://www.mulesoft.org/schema/mule/documentation
-            http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
     <http:listener-config name="httpListenerConfig" doc:name="HTTP Listener Config">
         <http:listener-connection host="0.0.0.0" port="${sys-firstdata.http-listener.port}"/>

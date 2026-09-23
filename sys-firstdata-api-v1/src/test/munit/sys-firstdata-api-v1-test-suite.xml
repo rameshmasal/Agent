@@ -16,9 +16,7 @@
         http://www.mulesoft.org/schema/mule/http
             http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
         http://www.mulesoft.org/schema/mule/ee/core
-            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-        http://www.mulesoft.org/schema/mule/documentation
-            http://www.mulesoft.org/schema/mule/documentation/current/mule-documentation.xsd">
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
     <munit:config name="sys-firstdata-api-v1-test-suite" />
 
