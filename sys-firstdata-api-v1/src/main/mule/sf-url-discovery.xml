@@ -128,12 +128,12 @@ output application/xml encoding="UTF-8"
                                     config-ref="fdHttpRequestConfig"
                                     doc:name="Ping First Data host">
                                     <http:headers><![CDATA[#[%dw 2.0
-output application/java
----
-{
-    "Content-Type" : "application/xml; charset=utf-8",
-    "User-Agent"   : p('sys.user-agent')
-}]]]></http:headers>
+                                    output application/java
+                                    ---
+                                    {
+                                        "Content-Type" : "application/xml; charset=utf-8",
+                                        "User-Agent"   : p('sys.user-agent')
+                                    }]]]></http:headers>
                                     <http:response-validator>
                                         <http:success-status-code-validator values="200..599" />
                                     </http:response-validator>

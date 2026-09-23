@@ -55,38 +55,12 @@
             </otherwise>
         </choice>
 
+        <!-- Unlock uses UnlockTransactionCode 2208 -->
         <set-variable variableName="originalTransactionCode" value="2208" doc:name="Set unlock tx code" />
 
         <ee:transform doc:name="Build FD unlock payload string">
             <ee:variables>
-                <ee:set-variable variableName="fdPayload"><![CDATA[%dw 2.0
-output text/plain
-var sep = "|1C"
-var bc  = vars.brandConfig
-var req = vars.requestPayload
-var currencyCode = if ((req.currencyCode default "USD") == "CAD") "124" else "840"
-var dateStr = now() as String {format: "MMddyyyy"}
-var timeStr = now() as String {format: "HHmmss"}
-var pinValue = vars.encryptedPin as String
-var amountCents = ((req.amount as Number) * 100) as Number {class: "integer"} as String
-var lockId = req.lockId as String default ""
-var hasTransId = (req.transactionId?) and (req.transactionId != null) and ((req.transactionId as String) != "")
----
-"SV." ++ bc.merchantId ++ sep ++
-"40" ++ "2208"           ++ sep ++
-"EA" ++ bc.sourceCode    ++ sep ++
-"42" ++ bc.merchantId ++ bc.terminalId ++ sep ++
-"F3" ++ bc.merchantKeyId ++ sep ++
-"04" ++ amountCents      ++ sep ++
-"C0" ++ currencyCode     ++ sep ++
-"70" ++ (req.cardNumber as String) ++ sep ++
-"53" ++ dateStr          ++ sep ++
-"34" ++ pinValue         ++ sep ++
-"13" ++ dateStr          ++ sep ++
-"12" ++ timeStr          ++ sep ++
-"79" ++ lockId           ++ sep ++
-"7F" ++ "1212"           ++
-(if (hasTransId) sep ++ "15" ++ (req.transactionId as String) else "")]]></ee:set-variable>
+                <ee:set-variable variableName="fdPayload" resource="transformdata/request-to-firstdata-unlock.dwl" />
             </ee:variables>
         </ee:transform>
 
@@ -125,12 +99,12 @@ output application/xml encoding="UTF-8"
             config-ref="fdHttpRequestConfig"
             doc:name="POST to First Data (unlock)">
             <http:headers><![CDATA[#[%dw 2.0
-output application/java
----
-{
-    "Content-Type" : "application/xml; charset=utf-8",
-    "User-Agent"   : p('sys.user-agent')
-}]]]></http:headers>
+            output application/java
+            ---
+            {
+                "Content-Type" : "application/xml; charset=utf-8",
+                "User-Agent"   : p('sys.user-agent')
+            }]]]></http:headers>
             <http:response-validator>
                 <http:success-status-code-validator values="200..299" />
             </http:response-validator>
@@ -149,6 +123,7 @@ output application/java
                     value="#[payload.Response.TransactionResponse.ReturnCode as String]"
                     doc:name="Save timeout returnCode" />
 
+                <!-- Build reversal payload: replace field 40 with 0704, append F6+2208 -->
                 <ee:transform doc:name="Build reversal payload string">
                     <ee:variables>
                         <ee:set-variable variableName="reversalFdPayload"><![CDATA[
@@ -199,12 +174,12 @@ output application/xml encoding="UTF-8"
                     config-ref="fdHttpRequestConfig"
                     doc:name="POST reversal to First Data">
                     <http:headers><![CDATA[#[%dw 2.0
-output application/java
----
-{
-    "Content-Type" : "application/xml; charset=utf-8",
-    "User-Agent"   : p('sys.user-agent')
-}]]]></http:headers>
+                    output application/java
+                    ---
+                    {
+                        "Content-Type" : "application/xml; charset=utf-8",
+                        "User-Agent"   : p('sys.user-agent')
+                    }]]]></http:headers>
                     <http:response-validator>
                         <http:success-status-code-validator values="200..599" />
                     </http:response-validator>
@@ -220,43 +195,7 @@ output application/java
             <otherwise>
                 <ee:transform doc:name="Parse FD unlock response">
                     <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-input payload application/xml
-output application/json
-var statusCode = payload.Response.Status.StatusCode as String default "UNKNOWN"
-var returnCode = payload.Response.TransactionResponse.ReturnCode as String default ""
-var fdPayloadStr = payload.Response.TransactionResponse.Payload as String default ""
-var fieldMap = if (fdPayloadStr != "")
-    (fdPayloadStr splitBy "|1C") reduce (field, acc = {}) ->
-        if (sizeOf(field) >= 3)
-            acc ++ {(field[0 to 1]): field[2 to -1]}
-        else if (sizeOf(field) == 2)
-            acc ++ {(field[0 to 1]): ""}
-        else acc
-    else {}
-fun getField(code: String) = fieldMap[code] default null
-var currencyRaw = getField("C0") default "840"
-var currency = if (currencyRaw == "124") "CAD"
-    else if (currencyRaw == "840") "USD"
-    else currencyRaw
----
-{
-    statusCode:       statusCode,
-    returnCode:       returnCode,
-    responseCode:     getField("39"),
-    cardNumber:       getField("70"),
-    availableBalance: getField("76"),
-    lockedAmount:     getField("78"),
-    previousBalance:  getField("75"),
-    lockId:           getField("79"),
-    currencyCode:     currency,
-    expirationDate:   getField("A0"),
-    cardClass:        getField("B0"),
-    referenceNumber:  getField("08"),
-    authorizationCode: getField("38"),
-    traceNumber:      getField("11"),
-    success:          (statusCode == "OK" and returnCode == "00")
-}]]></ee:set-payload>
+                        <ee:set-payload resource="transformdata/firstdata-to-unlock-response.dwl" />
                     </ee:message>
                 </ee:transform>
                 <set-variable variableName="httpStatus" value="#[200]" doc:name="Set HTTP 200" />
