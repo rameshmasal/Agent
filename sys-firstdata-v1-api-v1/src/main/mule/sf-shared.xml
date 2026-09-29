@@ -181,12 +181,14 @@ output application/java
                             <ee:variables>
                                 <ee:set-variable variableName="sortedUrlList"><![CDATA[%dw 2.0
 output application/java
-var sorted = payload orderBy $.ms
+var items  = payload map $.payload
+var sorted = items orderBy $.ms
 ---
 (sorted map $.url) joinBy ',']]></ee:set-variable>
                                 <ee:set-variable variableName="targetUrl"><![CDATA[%dw 2.0
 output application/java
-var sorted = payload orderBy $.ms
+var items  = payload map $.payload
+var sorted = items orderBy $.ms
 ---
 sorted[0].url]]></ee:set-variable>
                             </ee:variables>
