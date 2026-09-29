@@ -238,4 +238,15 @@ output application/java
         <flow-ref name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post"/>
     </flow>
 
+    <!-- ─── APIKit Console (Studio dev tool — not deployed to CloudHub) ─── -->
+    <flow name="sys-firstdata-v1-api-v1-console" doc:name="APIKit Console">
+        <http:listener
+            config-ref="httpListenerConfig"
+            path="/console/*"
+            doc:name="HTTP Listener"/>
+        <apikit:console
+            config-ref="sys-firstdata-v1-api-v1-config"
+            doc:name="APIKit Console"/>
+    </flow>
+
 </mule>
