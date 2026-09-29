@@ -158,15 +158,13 @@ output application/java
         <ee:transform doc:name="Extract response fields">
             <ee:variables>
                 <ee:set-variable variableName="fdReturnCode"><![CDATA[%dw 2.0
-input payload application/xml
 output application/java
 ---
-payload.Response.TransactionResponse.ReturnCode as String default ""]]></ee:set-variable>
+(read(payload, "application/xml")).Response.TransactionResponse.ReturnCode as String default ""]]></ee:set-variable>
                 <ee:set-variable variableName="fdStatusCode"><![CDATA[%dw 2.0
-input payload application/xml
 output application/java
 ---
-payload.Response.Status.StatusCode as String default "UNKNOWN"]]></ee:set-variable>
+(read(payload, "application/xml")).Response.Status.StatusCode as String default "UNKNOWN"]]></ee:set-variable>
                 <ee:set-variable variableName="fdXmlResponse"><![CDATA[%dw 2.0
 output application/java
 ---
@@ -289,11 +287,11 @@ output application/java
                 <ee:transform doc:name="Parse FD response to v1 format">
                     <ee:message>
                         <ee:set-payload><![CDATA[%dw 2.0
-input payload application/xml
 output application/json
-var statusCode   = payload.Response.Status.StatusCode as String default "UNKNOWN"
-var returnCode   = payload.Response.TransactionResponse.ReturnCode as String default ""
-var fdPayloadStr = payload.Response.TransactionResponse.Payload as String default ""
+var fdXml        = read(payload, "application/xml")
+var statusCode   = fdXml.Response.Status.StatusCode as String default "UNKNOWN"
+var returnCode   = fdXml.Response.TransactionResponse.ReturnCode as String default ""
+var fdPayloadStr = fdXml.Response.TransactionResponse.Payload as String default ""
 var fieldMap = if (fdPayloadStr != "")
     (fdPayloadStr splitBy "|1C") reduce (field, acc = {}) ->
         if (sizeOf(field) >= 3) acc ++ {(field[0 to 1]): field[2 to -1]}
