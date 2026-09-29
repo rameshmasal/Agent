@@ -186,7 +186,7 @@ payload]]></ee:set-variable>
 
         <!-- 10. Timeout reversal — send reversal and return 504 -->
         <choice doc:name="Is timeout?">
-            <when expression="#[(p('sys.timeout-responses') splitBy ',') contains vars.fdReturnCode or vars.fdStatusCode == 'TIMEOUT']">
+            <when expression="#[((p('sys.timeout-responses') splitBy ',') contains vars.fdReturnCode) or vars.fdStatusCode == 'TIMEOUT']">
                 <logger level="WARN"
                     message="#['[rf-firstdata-lock-post] TIMEOUT returnCode=' ++ vars.fdReturnCode ++ ' — sending reversal']"
                     doc:name="Log timeout"/>
