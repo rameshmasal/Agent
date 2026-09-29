@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit
+            http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <http:listener-config name="httpListenerConfig" doc:name="HTTP Listener Config">
+        <http:listener-connection host="0.0.0.0" port="${sys-firstdata-v1.http-listener.port}"/>
+    </http:listener-config>
+
+    <apikit:config
+        name="sys-firstdata-v1-api-v1-config"
+        api="api/sys-firstdata-v1-api-v1.raml"
+        outboundHeadersMapName="outboundHeaders"
+        httpStatusVarName="httpStatus"
+        doc:name="APIKit Config"/>
+
+    <!-- ─── Main listener flow ─── -->
+    <flow name="sys-firstdata-v1-api-v1-main" doc:name="sys-firstdata-v1-api-v1-main">
+        <http:listener
+            config-ref="httpListenerConfig"
+            path="${sys-firstdata-v1.http-listener.path}"
+            doc:name="HTTP Listener">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="sys-firstdata-v1-api-v1-config" doc:name="APIKit Router"/>
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST" enableNotifications="true" logException="true">
+                <ee:transform doc:name="400 Bad Request">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "400",
+        "status":  "BAD_REQUEST",
+        "message": error.description default "Bad Request"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND" enableNotifications="false" logException="false">
+                <ee:transform doc:name="404 Not Found">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "404",
+        "status":  "NOT_FOUND",
+        "message": error.description default "Resource not found"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED" enableNotifications="false" logException="false">
+                <ee:transform doc:name="405 Method Not Allowed">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "405",
+        "status":  "METHOD_NOT_ALLOWED",
+        "message": error.description default "Method not allowed"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE" enableNotifications="false" logException="false">
+                <ee:transform doc:name="406 Not Acceptable">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "406",
+        "status":  "NOT_ACCEPTABLE",
+        "message": error.description default "Not acceptable"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[406]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE" enableNotifications="false" logException="false">
+                <ee:transform doc:name="415 Unsupported Media Type">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "415",
+        "status":  "UNSUPPORTED_MEDIA_TYPE",
+        "message": error.description default "Unsupported media type"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APP:ACTIVATE_DISABLED" enableNotifications="true" logException="false">
+                <ee:transform doc:name="400 Activate Disabled">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "400",
+        "status":  "ACTIVATE_DISABLED",
+        "message": "Activate is not enabled for this environment"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="HTTP:CONNECTIVITY,HTTP:TIMEOUT" enableNotifications="true" logException="true">
+                <ee:transform doc:name="503 Service Unavailable">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "503",
+        "status":  "SERVICE_UNAVAILABLE",
+        "message": "First Data service is unavailable"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[503]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="ANY" enableNotifications="true" logException="true">
+                <ee:transform doc:name="500 Internal Error">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "500",
+        "status":  "INTERNAL_SERVER_ERROR",
+        "message": error.description default "An unexpected error occurred"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <!-- ─── APIKit Dispatcher Flows ─── -->
+    <flow name="post:\balance:application\json:sys-firstdata-v1-api-v1-config" doc:name="Dispatch balance POST">
+        <flow-ref name="rf-firstdata-balance-post" doc:name="rf-firstdata-balance-post"/>
+    </flow>
+
+    <flow name="post:\activate:application\json:sys-firstdata-v1-api-v1-config" doc:name="Dispatch activate POST">
+        <flow-ref name="rf-firstdata-activate-post" doc:name="rf-firstdata-activate-post"/>
+    </flow>
+
+    <flow name="post:\lock:application\json:sys-firstdata-v1-api-v1-config" doc:name="Dispatch lock POST">
+        <flow-ref name="rf-firstdata-lock-post" doc:name="rf-firstdata-lock-post"/>
+    </flow>
+
+    <flow name="post:\unlock:application\json:sys-firstdata-v1-api-v1-config" doc:name="Dispatch unlock POST">
+        <flow-ref name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post"/>
+    </flow>
+
+</mule>

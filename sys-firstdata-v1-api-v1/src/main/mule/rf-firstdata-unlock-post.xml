@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+    <!--
+        POST /sys/firstdata/v1/unlock
+        v1 Request : { request_id?, transaction: { card_number, card_pin, id? },
+                        unlock_transaction: { transaction_amount, lock_id, currency_code? } }
+        v1 Response: { request_id?, transaction_result: { is_succeeded, balance?, lock_id? } }
+        On timeout (returnCode 205|8): sends reversal, returns HTTP 504
+    -->
+    <flow name="rf-firstdata-unlock-post" doc:name="rf-firstdata-unlock-post">
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-unlock-post] START correlationId=' ++ correlationId]"
+            doc:name="Log start"/>
+
+        <!-- 1. Save and extract v1 fields -->
+        <set-variable variableName="requestPayload" value="#[payload]" doc:name="Save requestPayload"/>
+
+        <ee:transform doc:name="Extract v1 request fields">
+            <ee:variables>
+                <ee:set-variable variableName="cardNumber"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.card_number as String]]></ee:set-variable>
+                <ee:set-variable variableName="pin"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.card_pin as String]]></ee:set-variable>
+                <ee:set-variable variableName="transactionId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.id]]></ee:set-variable>
+                <ee:set-variable variableName="requestId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.request_id]]></ee:set-variable>
+                <ee:set-variable variableName="unlockAmountCents"><![CDATA[%dw 2.0
+output application/java
+---
+(payload.unlock_transaction.transaction_amount * 100) as Number {class: "integer"}]]></ee:set-variable>
+                <ee:set-variable variableName="lockId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.unlock_transaction.lock_id as String]]></ee:set-variable>
+                <ee:set-variable variableName="unlockCurrencyCode"><![CDATA[%dw 2.0
+output application/java
+---
+payload.unlock_transaction.currency_code default "USD"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- 2. Load merchant config -->
+        <flow-ref name="sf-load-merchant-config" doc:name="Load merchant config"/>
+
+        <!-- 3. URL discovery -->
+        <flow-ref name="sf-url-discovery" doc:name="Discover target URL"/>
+
+        <!-- 4. PIN encryption -->
+        <choice doc:name="Encrypt PIN?">
+            <when expression="#[vars.merchantConfig.merchantKeyId != 'NOKEY']">
+                <flow-ref name="sf-encrypt-pin" doc:name="3DES encrypt PIN"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="encryptedPin" value="#[vars.pin]" doc:name="Use plain PIN"/>
+            </otherwise>
+        </choice>
+
+        <!-- 5. Build FD unlock payload -->
+        <ee:transform doc:name="Build FD unlock payload">
+            <ee:variables>
+                <ee:set-variable variableName="fdPayload"><![CDATA[%dw 2.0
+output text/plain
+var sep = "|1C"
+var mc  = vars.merchantConfig
+var cc  = if (vars.unlockCurrencyCode == "CAD") "124" else "840"
+var d   = now() as String {format: "MMddyyyy"}
+var t   = now() as String {format: "HHmmss"}
+var hasId = (vars.transactionId != null) and ((vars.transactionId as String) != "")
+---
+mc.transactionPrefix ++ mc.merchantId ++ sep ++
+"40" ++ p('sys.unlock-tx-code') ++ sep ++
+"EA" ++ mc.sourceCode ++ sep ++
+"42" ++ mc.merchantId ++ mc.terminalId ++ sep ++
+"F3" ++ mc.merchantKeyId ++ sep ++
+"04" ++ (vars.unlockAmountCents as String) ++ sep ++
+"C0" ++ cc ++ sep ++
+"70" ++ vars.cardNumber ++ sep ++
+"53" ++ d ++ sep ++
+"34" ++ (vars.encryptedPin as String) ++ sep ++
+"13" ++ d ++ sep ++
+"12" ++ t ++ sep ++
+"79" ++ vars.lockId ++ sep ++
+"7F" ++ "1212" ++
+(if (hasId) (sep ++ "15" ++ (vars.transactionId as String)) else "")]]></ee:set-variable>
+                <ee:set-variable variableName="clientRef"><![CDATA[%dw 2.0
+import floor from dw::core::Math
+output application/java
+---
+((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- 6. Build XML envelope -->
+        <ee:transform doc:name="Build XML request">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.merchantConfig.did,
+      App: vars.merchantConfig.appId,
+      Auth: vars.merchantConfig.merchantId ++ "|" ++ vars.merchantConfig.tid,
+      ClientRef: vars.clientRef
+    },
+    Transaction: {
+      ServiceID: vars.merchantConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.fdPayload
+    }
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- 7. Call First Data -->
+        <logger level="INFO"
+            message="#['[rf-firstdata-unlock-post] calling FD url=' ++ vars.targetUrl]"
+            doc:name="Log FD call"/>
+
+        <http:request
+            method="POST"
+            url="#[vars.targetUrl]"
+            config-ref="fdHttpRequestConfig"
+            doc:name="POST to First Data">
+            <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "Content-Type" : "application/xml; charset=utf-8",
+    "User-Agent"   : p('sys.user-agent')
+}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="200..299"/>
+            </http:response-validator>
+        </http:request>
+
+        <!-- 8. Extract returnCode -->
+        <ee:transform doc:name="Extract response fields">
+            <ee:variables>
+                <ee:set-variable variableName="fdReturnCode"><![CDATA[%dw 2.0
+input payload application/xml
+output application/java
+---
+payload.Response.TransactionResponse.ReturnCode as String default ""]]></ee:set-variable>
+                <ee:set-variable variableName="fdStatusCode"><![CDATA[%dw 2.0
+input payload application/xml
+output application/java
+---
+payload.Response.Status.StatusCode as String default "UNKNOWN"]]></ee:set-variable>
+                <ee:set-variable variableName="fdXmlResponse" value="#[payload]" doc:name="Save XML response"/>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- 9. Cache invalidation -->
+        <choice doc:name="Invalidate URL cache?">
+            <when expression="#[(p('sys.invalidate-cache-responses') splitBy ',') contains vars.fdReturnCode]">
+                <os:remove key="fd_current_url" objectStore="fdUrlObjectStore" doc:name="Remove fd_current_url"/>
+                <os:remove key="fd_urls_list" objectStore="fdUrlObjectStore" doc:name="Remove fd_urls_list"/>
+                <logger level="WARN" message="#['[rf-firstdata-unlock-post] returnCode=' ++ vars.fdReturnCode ++ ' — URL cache cleared']" doc:name="Log cache clear"/>
+            </when>
+            <otherwise>
+                <logger level="DEBUG" message="#['[rf-firstdata-unlock-post] returnCode=' ++ vars.fdReturnCode]" doc:name="Log returnCode"/>
+            </otherwise>
+        </choice>
+
+        <!-- 10. Timeout reversal -->
+        <choice doc:name="Is timeout?">
+            <when expression="#[(p('sys.timeout-responses') splitBy ',') contains vars.fdReturnCode or vars.fdStatusCode == 'TIMEOUT']">
+                <logger level="WARN"
+                    message="#['[rf-firstdata-unlock-post] TIMEOUT returnCode=' ++ vars.fdReturnCode ++ ' — sending reversal']"
+                    doc:name="Log timeout"/>
+                <ee:transform doc:name="Build reversal payload">
+                    <ee:variables>
+                        <ee:set-variable variableName="reversalPayload"><![CDATA[%dw 2.0
+output text/plain
+var sep    = "|1C"
+var mc     = vars.merchantConfig
+var cc     = if (vars.unlockCurrencyCode == "CAD") "124" else "840"
+var d      = now() as String {format: "MMddyyyy"}
+var t      = now() as String {format: "HHmmss"}
+var revCode = p('sys.timeout-reversal-tx-code')
+var hasId = (vars.transactionId != null) and ((vars.transactionId as String) != "")
+---
+mc.transactionPrefix ++ mc.merchantId ++ sep ++
+"40" ++ revCode ++ sep ++
+"EA" ++ mc.sourceCode ++ sep ++
+"42" ++ mc.merchantId ++ mc.terminalId ++ sep ++
+"F3" ++ mc.merchantKeyId ++ sep ++
+"04" ++ (vars.unlockAmountCents as String) ++ sep ++
+"C0" ++ cc ++ sep ++
+"70" ++ vars.cardNumber ++ sep ++
+"53" ++ d ++ sep ++
+"34" ++ (vars.encryptedPin as String) ++ sep ++
+"13" ++ d ++ sep ++
+"12" ++ t ++ sep ++
+"79" ++ vars.lockId ++ sep ++
+"F6" ++ p('sys.unlock-tx-code') ++ sep ++
+"7F" ++ "1212" ++
+(if (hasId) (sep ++ "15" ++ (vars.transactionId as String)) else "")]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <ee:transform doc:name="Build reversal XML">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.merchantConfig.did,
+      App: vars.merchantConfig.appId,
+      Auth: vars.merchantConfig.merchantId ++ "|" ++ vars.merchantConfig.tid,
+      ClientRef: vars.clientRef
+    },
+    Transaction: {
+      ServiceID: vars.merchantConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.reversalPayload
+    }
+  }
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <http:request
+                    method="POST"
+                    url="#[vars.targetUrl]"
+                    config-ref="fdHttpRequestConfig"
+                    doc:name="POST reversal to First Data">
+                    <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "Content-Type" : "application/xml; charset=utf-8",
+    "User-Agent"   : p('sys.user-agent')
+}]]]></http:headers>
+                    <http:response-validator>
+                        <http:success-status-code-validator values="200..599"/>
+                    </http:response-validator>
+                </http:request>
+                <ee:transform doc:name="Build 504 response">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":    "504",
+        "status":  "GATEWAY_TIMEOUT",
+        "message": "First Data unlock transaction timed out — reversal sent"
+    }
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[504]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </when>
+
+            <otherwise>
+                <!-- 11. Normal response — parse XML to v1 JSON -->
+                <set-payload value="#[vars.fdXmlResponse]" doc:name="Restore XML response"/>
+                <ee:transform doc:name="Parse FD response to v1 format">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+input payload application/xml
+output application/json
+var statusCode   = payload.Response.Status.StatusCode as String default "UNKNOWN"
+var returnCode   = payload.Response.TransactionResponse.ReturnCode as String default ""
+var fdPayloadStr = payload.Response.TransactionResponse.Payload as String default ""
+var fieldMap = if (fdPayloadStr != "")
+    (fdPayloadStr splitBy "|1C") reduce (field, acc = {}) ->
+        if (sizeOf(field) >= 3) acc ++ {(field[0 to 1]): field[2 to -1]}
+        else if (sizeOf(field) == 2) acc ++ {(field[0 to 1]): ""}
+        else acc
+    else {}
+fun getField(code: String) = fieldMap[code] default null
+var avail  = (getField("76") default "0") as Number default 0
+var locked = (getField("78") default "0") as Number default 0
+var balVal = (avail - locked) * 0.01
+var curr   = if ((getField("C0") default "840") == "124") "CAD" else "USD"
+var succeeded = statusCode == "OK" and returnCode == "00"
+---
+{
+  (request_id: vars.requestId) if (vars.requestId != null),
+  transaction_result: {
+    is_succeeded: succeeded,
+    (card_number: getField("70")) if (getField("70") != null),
+    (balance: {
+      value:         balVal,
+      currency_code: curr
+    })                            if succeeded,
+    (lock_id: getField("79"))    if (getField("79") != null),
+    (error_description: (
+      {
+        "33": "No previous transaction.", "34": "Already reversed.",
+        "35": "Generic denial."
+      }[getField("39") default ""] default ("FD response code: " ++ (getField("39") default "unknown"))
+    ))                            if (!succeeded)
+  }
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <set-variable variableName="httpStatus" value="#[200]" doc:name="Set HTTP 200"/>
+            </otherwise>
+        </choice>
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-unlock-post] DONE returnCode=' ++ (vars.fdReturnCode default 'N/A') ++ ' httpStatus=' ++ (vars.httpStatus default 200 as String)]"
+            doc:name="Log done"/>
+
+    </flow>
+
+</mule>

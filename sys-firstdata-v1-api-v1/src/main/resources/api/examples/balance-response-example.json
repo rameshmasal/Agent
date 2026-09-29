@@ -1,0 +1,14 @@
+{
+  "request_id": "REQ-20260929-001",
+  "transaction_result": {
+    "is_succeeded": true,
+    "card_number": "6006200000000000",
+    "balance": {
+      "value": 50.00,
+      "currency_code": "USD"
+    },
+    "expiration_date": "2812",
+    "card_class": "001",
+    "promotion_code": null
+  }
+}

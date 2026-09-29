@@ -1,0 +1,139 @@
+#%RAML 1.0
+title: Newell Brands FirstData System API v1
+version: v1
+baseUri: https://{environment}.apis.newellbrands.com/{tier}/firstdata/{version}
+baseUriParameters:
+  environment:
+    description: Environment prefix (d=dev, q=qa, u=uat, p=prd)
+    enum: [d, q, u, p]
+  tier:
+    description: API tier
+    default: sys
+  version:
+    description: API version
+    default: v1
+mediaType: application/json
+protocols: [HTTPS]
+
+uses:
+  NewellLib: exchange_modules/REPLACE_WITH_NEWELL_ORG_ID/newell-raml-library/1.0.12/newell-raml-library.raml
+  Types: firstdata-types.raml
+
+documentation:
+  - title: Overview
+    content: |
+      System API migrated from Apigee FirstData_Proxy (v1, active production).
+      Yankee Candle brand only — no X-Brand header required.
+      Supports gift card Balance, Activate (when enabled), Lock (partial hold), and Unlock.
+      Request and response formats match the Apigee v1 contract exactly to avoid caller changes.
+
+/balance:
+  description: Gift card balance enquiry (transaction code 2400)
+  post:
+    description: |
+      Query the available and locked balance on a gift card.
+      The PIN is 3DES-encrypted using the merchant key before sending to First Data.
+    body:
+      application/json:
+        type: Types.BalanceRequest
+        example: !include examples/balance-request-example.json
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.BalanceResponse
+            example: !include examples/balance-response-example.json
+      400:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+
+/activate:
+  description: Gift card activation and fund load (transaction code 2104)
+  post:
+    description: |
+      Activate a gift card and load funds onto it.
+      Returns HTTP 400 if activate is disabled (IsActivateEnabled=false) for this environment.
+    body:
+      application/json:
+        type: Types.ActivateRequest
+        example: !include examples/activate-request-example.json
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.ActivateResponse
+            example: !include examples/activate-response-example.json
+      400:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+
+/lock:
+  description: Partial lock — reserve funds on a gift card (transaction code 2408)
+  post:
+    description: |
+      Reserve (lock) a specified amount on a gift card.
+      Returns a lock_id that must be stored and used to unlock.
+      On timeout (returnCode 205 or 8), an auto-reversal is sent and HTTP 504 is returned.
+    body:
+      application/json:
+        type: Types.LockRequest
+        example: !include examples/lock-request-example.json
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.LockResponse
+            example: !include examples/lock-response-example.json
+      400:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      504:
+        description: Transaction timed out — auto-reversal was sent to First Data
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+
+/unlock:
+  description: Unlock — release previously locked funds (transaction code 2208)
+  post:
+    description: |
+      Release locked funds back to available balance.
+      On timeout (returnCode 205 or 8), an auto-reversal is sent and HTTP 504 is returned.
+    body:
+      application/json:
+        type: Types.UnlockRequest
+        example: !include examples/unlock-request-example.json
+    responses:
+      200:
+        body:
+          application/json:
+            type: Types.UnlockResponse
+            example: !include examples/unlock-response-example.json
+      400:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      504:
+        description: Transaction timed out — auto-reversal was sent to First Data
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse
+      503:
+        body:
+          application/json:
+            type: NewellLib.ErrorResponse

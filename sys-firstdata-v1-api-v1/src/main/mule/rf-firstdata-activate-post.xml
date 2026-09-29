@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+    <!--
+        POST /sys/firstdata/v1/activate
+        v1 Request : { request_id?, transaction: { card_number, card_pin, currency_code?, id? },
+                        activate_transaction: { transaction_amount, currency_code? } }
+        v1 Response: { request_id?, transaction_result: { is_succeeded, balance?, promotion_code? } }
+        Gate: raises APP:ACTIVATE_DISABLED if sys.activate-enabled != "true"
+    -->
+    <flow name="rf-firstdata-activate-post" doc:name="rf-firstdata-activate-post">
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-activate-post] START correlationId=' ++ correlationId]"
+            doc:name="Log start"/>
+
+        <!-- 1. Check activate gate -->
+        <choice doc:name="Is activate enabled?">
+            <when expression="#[p('sys.activate-enabled') == 'true']">
+                <logger level="DEBUG" message="[rf-firstdata-activate-post] activate is enabled" doc:name="Log enabled"/>
+            </when>
+            <otherwise>
+                <raise-error type="APP:ACTIVATE_DISABLED" description="Activate is not enabled for this environment"/>
+            </otherwise>
+        </choice>
+
+        <!-- 2. Save and extract v1 fields -->
+        <set-variable variableName="requestPayload" value="#[payload]" doc:name="Save requestPayload"/>
+
+        <ee:transform doc:name="Extract v1 request fields">
+            <ee:variables>
+                <ee:set-variable variableName="cardNumber"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.card_number as String]]></ee:set-variable>
+                <ee:set-variable variableName="pin"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.card_pin as String]]></ee:set-variable>
+                <ee:set-variable variableName="currencyCode"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.currency_code default "USD"]]></ee:set-variable>
+                <ee:set-variable variableName="transactionId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transaction.id]]></ee:set-variable>
+                <ee:set-variable variableName="requestId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.request_id]]></ee:set-variable>
+                <ee:set-variable variableName="activateAmountCents"><![CDATA[%dw 2.0
+output application/java
+---
+(payload.activate_transaction.transaction_amount * 100) as Number {class: "integer"}]]></ee:set-variable>
+                <ee:set-variable variableName="activateCurrencyCode"><![CDATA[%dw 2.0
+output application/java
+---
+payload.activate_transaction.currency_code default payload.transaction.currency_code default "USD"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- 3. Load merchant config -->
+        <flow-ref name="sf-load-merchant-config" doc:name="Load merchant config"/>
+
+        <!-- 4. URL discovery -->
+        <flow-ref name="sf-url-discovery" doc:name="Discover target URL"/>
+
+        <!-- 5. PIN encryption -->
+        <choice doc:name="Encrypt PIN?">
+            <when expression="#[vars.merchantConfig.merchantKeyId != 'NOKEY']">
+                <flow-ref name="sf-encrypt-pin" doc:name="3DES encrypt PIN"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="encryptedPin" value="#[vars.pin]" doc:name="Use plain PIN"/>
+            </otherwise>
+        </choice>
+
+        <!-- 6. Build FD activate payload -->
+        <ee:transform doc:name="Build FD activate payload">
+            <ee:variables>
+                <ee:set-variable variableName="fdPayload"><![CDATA[%dw 2.0
+output text/plain
+var sep = "|1C"
+var mc  = vars.merchantConfig
+var cc  = if (vars.activateCurrencyCode == "CAD") "124" else "840"
+var d   = now() as String {format: "MMddyyyy"}
+var t   = now() as String {format: "HHmmss"}
+var hasId = (vars.transactionId != null) and ((vars.transactionId as String) != "")
+---
+mc.transactionPrefix ++ mc.merchantId ++ sep ++
+"40" ++ p('sys.activate-tx-code') ++ sep ++
+"EA" ++ mc.sourceCode ++ sep ++
+"42" ++ mc.merchantId ++ mc.terminalId ++ sep ++
+"F3" ++ mc.merchantKeyId ++ sep ++
+"04" ++ (vars.activateAmountCents as String) ++ sep ++
+"C0" ++ cc ++ sep ++
+"70" ++ vars.cardNumber ++ sep ++
+"53" ++ d ++ sep ++
+"34" ++ (vars.encryptedPin as String) ++ sep ++
+"13" ++ d ++ sep ++
+"12" ++ t ++ sep ++
+"F2" ++ mc.activatePromoCode ++ sep ++
+"7F" ++ "1212" ++
+(if (hasId) (sep ++ "15" ++ (vars.transactionId as String)) else "")]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- 7. Build XML envelope -->
+        <ee:transform doc:name="Build XML request">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import floor from dw::core::Math
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.merchantConfig.did,
+      App: vars.merchantConfig.appId,
+      Auth: vars.merchantConfig.merchantId ++ "|" ++ vars.merchantConfig.tid,
+      ClientRef: ((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')
+    },
+    Transaction: {
+      ServiceID: vars.merchantConfig.serviceId as Number,
+      Payload @(Encoding: p('sys.payload-encoding')): vars.fdPayload
+    }
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- 8. Call First Data -->
+        <logger level="INFO"
+            message="#['[rf-firstdata-activate-post] calling FD url=' ++ vars.targetUrl]"
+            doc:name="Log FD call"/>
+
+        <http:request
+            method="POST"
+            url="#[vars.targetUrl]"
+            config-ref="fdHttpRequestConfig"
+            doc:name="POST to First Data">
+            <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "Content-Type" : "application/xml; charset=utf-8",
+    "User-Agent"   : p('sys.user-agent')
+}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="200..299"/>
+            </http:response-validator>
+        </http:request>
+
+        <!-- 9. Cache invalidation check -->
+        <ee:transform doc:name="Extract returnCode">
+            <ee:variables>
+                <ee:set-variable variableName="fdReturnCode"><![CDATA[%dw 2.0
+input payload application/xml
+output application/java
+---
+payload.Response.TransactionResponse.ReturnCode as String default ""]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="Invalidate URL cache?">
+            <when expression="#[(p('sys.invalidate-cache-responses') splitBy ',') contains vars.fdReturnCode]">
+                <os:remove key="fd_current_url" objectStore="fdUrlObjectStore" doc:name="Remove fd_current_url"/>
+                <os:remove key="fd_urls_list" objectStore="fdUrlObjectStore" doc:name="Remove fd_urls_list"/>
+                <logger level="WARN" message="#['[rf-firstdata-activate-post] returnCode=' ++ vars.fdReturnCode ++ ' — URL cache cleared']" doc:name="Log cache clear"/>
+            </when>
+            <otherwise>
+                <logger level="DEBUG" message="#['[rf-firstdata-activate-post] returnCode=' ++ vars.fdReturnCode]" doc:name="Log returnCode"/>
+            </otherwise>
+        </choice>
+
+        <!-- 10. Parse XML response → v1 JSON -->
+        <ee:transform doc:name="Parse FD response to v1 format">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+input payload application/xml
+output application/json
+var statusCode  = payload.Response.Status.StatusCode as String default "UNKNOWN"
+var returnCode  = payload.Response.TransactionResponse.ReturnCode as String default ""
+var fdPayloadStr = payload.Response.TransactionResponse.Payload as String default ""
+var fieldMap = if (fdPayloadStr != "")
+    (fdPayloadStr splitBy "|1C") reduce (field, acc = {}) ->
+        if (sizeOf(field) >= 3) acc ++ {(field[0 to 1]): field[2 to -1]}
+        else if (sizeOf(field) == 2) acc ++ {(field[0 to 1]): ""}
+        else acc
+    else {}
+fun getField(code: String) = fieldMap[code] default null
+var avail   = (getField("76") default "0") as Number default 0
+var locked  = (getField("78") default "0") as Number default 0
+var balVal  = (avail - locked) * 0.01
+var curr    = if ((getField("C0") default "840") == "124") "CAD" else "USD"
+var succeeded = statusCode == "OK" and returnCode == "00"
+---
+{
+  (request_id: vars.requestId) if (vars.requestId != null),
+  transaction_result: {
+    is_succeeded: succeeded,
+    (card_number:    getField("70"))  if (getField("70") != null),
+    (balance: {
+      value:         balVal,
+      currency_code: curr
+    })                                if succeeded,
+    (promotion_code: getField("F2")) if (getField("F2") != null),
+    (error_description: (
+      {
+        "01": "Insufficient funds.", "04": "Inactive account.",
+        "05": "Expired card.",       "08": "Already active.",
+        "32": "Account locked.",     "35": "Generic denial."
+      }[getField("39") default ""] default ("FD response code: " ++ (getField("39") default "unknown"))
+    ))                                if (!succeeded)
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <set-variable variableName="httpStatus" value="#[200]" doc:name="Set HTTP 200"/>
+
+        <logger level="INFO"
+            message="#['[rf-firstdata-activate-post] DONE returnCode=' ++ (vars.fdReturnCode default 'N/A')]"
+            doc:name="Log done"/>
+
+    </flow>
+
+</mule>
