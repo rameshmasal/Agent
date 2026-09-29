@@ -6,7 +6,6 @@
     "balance": {
       "value": 50.00,
       "currency_code": "USD"
-    },
-    "lock_id": null
+    }
   }
 }
