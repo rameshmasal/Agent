@@ -52,7 +52,7 @@ payload.request_id]]></ee:set-variable>
                 <ee:set-variable variableName="lockAmountCents"><![CDATA[%dw 2.0
 output application/java
 ---
-(payload.lock_transaction.transaction_amount * 100) as Number {class: "integer"}]]></ee:set-variable>
+(payload.lock_transaction.transaction_amount * 100) as String {format: "0"}]]></ee:set-variable>
                 <ee:set-variable variableName="lockCurrencyCode"><![CDATA[%dw 2.0
 output application/java
 ---
