@@ -108,10 +108,9 @@ mc.transactionPrefix ++ mc.merchantId ++ sep ++
 "7F" ++ "1212" ++
 (if (hasId) (sep ++ "15" ++ (vars.transactionId as String)) else "")]]></ee:set-variable>
                 <ee:set-variable variableName="clientRef"><![CDATA[%dw 2.0
-import floor from dw::core::Math
 output application/java
 ---
-((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')]]></ee:set-variable>
+((random() * 9000000 + 1000000) as String {format: "0"}) ++ p('sys.application-version')]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
 

@@ -124,7 +124,6 @@ mc.transactionPrefix ++ mc.merchantId ++ sep ++
         <ee:transform doc:name="Build XML request">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
-import floor from dw::core::Math
 output application/xml encoding="UTF-8"
 ---
 {
@@ -133,7 +132,7 @@ output application/xml encoding="UTF-8"
       DID: vars.merchantConfig.did,
       App: vars.merchantConfig.appId,
       Auth: vars.merchantConfig.merchantId ++ "|" ++ vars.merchantConfig.tid,
-      ClientRef: ((floor(random() * 9000000) + 1000000) as Number as String) ++ p('sys.application-version')
+      ClientRef: ((random() * 9000000 + 1000000) as String {format: "0"}) ++ p('sys.application-version')
     },
     Transaction: {
       ServiceID: vars.merchantConfig.serviceId as Number,
