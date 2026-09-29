@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="60">
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p %d [%t] [event: %X{correlationId}] %c: %m%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <!-- Application loggers — INFO shows all your logger components -->
+        <AsyncLogger name="org.mule.runtime.core.internal.processor.LoggerMessageProcessor"
+                     level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+        </AsyncLogger>
+
+        <!-- Suppress noisy Mule internals -->
+        <AsyncLogger name="org.mule"             level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="com.mulesoft"         level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="org.springframework"  level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="org.apache"           level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="com.ning"             level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="com.github"           level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="org.glassfish"        level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="jersey"               level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+        <AsyncLogger name="reactor"              level="WARN" additivity="false"><AppenderRef ref="Console"/></AsyncLogger>
+
+        <AsyncRoot level="WARN">
+            <AppenderRef ref="Console"/>
+        </AsyncRoot>
+    </Loggers>
+
+</Configuration>
