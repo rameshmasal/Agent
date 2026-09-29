@@ -65,7 +65,7 @@ output application/java
             key="fd_current_url"
             objectStore="fdUrlObjectStore"
             doc:name="Get fd_current_url">
-            <os:default-value>#[null]</os:default-value>
+            <os:default-value>#['']</os:default-value>
         </os:retrieve>
 
         <choice doc:name="fd_current_url cached?">
@@ -83,7 +83,7 @@ output application/java
                     key="fd_urls_list"
                     objectStore="fdUrlObjectStore"
                     doc:name="Get fd_urls_list">
-                    <os:default-value>#[null]</os:default-value>
+                    <os:default-value>#['']</os:default-value>
                 </os:retrieve>
 
                 <choice doc:name="fd_urls_list cached?">
