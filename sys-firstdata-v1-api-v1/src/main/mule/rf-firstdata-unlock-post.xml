@@ -173,7 +173,10 @@ input payload application/xml
 output application/java
 ---
 payload.Response.Status.StatusCode as String default "UNKNOWN"]]></ee:set-variable>
-                <ee:set-variable variableName="fdXmlResponse" value="#[payload]" doc:name="Save XML response"/>
+                <ee:set-variable variableName="fdXmlResponse"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
 
@@ -276,7 +279,10 @@ output application/json
 }]]></ee:set-payload>
                     </ee:message>
                     <ee:variables>
-                        <ee:set-variable variableName="httpStatus"><![CDATA[504]]></ee:set-variable>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+output application/java
+---
+504]]></ee:set-variable>
                     </ee:variables>
                 </ee:transform>
             </when>
