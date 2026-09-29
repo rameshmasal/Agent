@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+            http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+        http://www.mulesoft.org/schema/mule/scripting
+            http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         sf-load-merchant-config
+         Loads Yankee Candle merchant config from properties into vars.merchantConfig.
+         No brand selection needed — v1 is single-brand (Yankee Candle only).
+         ═══════════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-load-merchant-config" doc:name="sf-load-merchant-config">
+
+        <ee:transform doc:name="Build merchantConfig map">
+            <ee:variables>
+                <ee:set-variable variableName="merchantConfig"><![CDATA[%dw 2.0
+output application/java
+---
+{
+    merchantId:        p('secure::sys.merchant-id'),
+    merchantKey:       p('secure::sys.merchant-key'),
+    did:               p('secure::sys.did'),
+    appId:             p('sys.app-id'),
+    terminalId:        p('sys.terminal-id'),
+    tid:               p('sys.tid'),
+    serviceId:         p('sys.service-id'),
+    sourceCode:        p('sys.source-code'),
+    merchantKeyId:     p('sys.merchant-key-id'),
+    activatePromoCode: p('sys.activate-promo-code'),
+    fieldSeparator:    p('sys.field-separator'),
+    transactionPrefix: p('sys.transaction-prefix')
+}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+    </sub-flow>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         sf-url-discovery
+         Sets vars.targetUrl — checked in this order:
+           1. Object Store fd_current_url  (TTL 300s fast path)
+           2. Object Store fd_urls_list    (pre-sorted list)
+           3. Parallel ping of all configured hosts; sort by fastest
+         Prerequisite: vars.merchantConfig must be set.
+         ═══════════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-url-discovery" doc:name="sf-url-discovery">
+
+        <!-- Step 1 — try fast-path cached URL -->
+        <os:retrieve
+            key="fd_current_url"
+            objectStore="fdUrlObjectStore"
+            doc:name="Get fd_current_url">
+            <os:default-value>#[null]</os:default-value>
+        </os:retrieve>
+
+        <choice doc:name="fd_current_url cached?">
+
+            <when expression="#[payload != null and payload != '']">
+                <set-variable variableName="targetUrl" value="#[payload]" doc:name="Use cached targetUrl"/>
+                <logger level="DEBUG"
+                    message="#['[sf-url-discovery] cache hit fd_current_url=' ++ vars.targetUrl]"
+                    doc:name="Log cache hit"/>
+            </when>
+
+            <otherwise>
+                <!-- Step 2 — try pre-sorted URL list -->
+                <os:retrieve
+                    key="fd_urls_list"
+                    objectStore="fdUrlObjectStore"
+                    doc:name="Get fd_urls_list">
+                    <os:default-value>#[null]</os:default-value>
+                </os:retrieve>
+
+                <choice doc:name="fd_urls_list cached?">
+
+                    <when expression="#[payload != null and payload != '']">
+                        <ee:transform doc:name="Pick first URL from sorted list">
+                            <ee:variables>
+                                <ee:set-variable variableName="targetUrl"><![CDATA[%dw 2.0
+output application/java
+---
+(payload splitBy ',')[0]]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                        <os:store
+                            key="fd_current_url"
+                            objectStore="fdUrlObjectStore"
+                            doc:name="Cache fd_current_url from list">
+                            <os:value>#[vars.targetUrl]</os:value>
+                        </os:store>
+                        <logger level="DEBUG"
+                            message="#['[sf-url-discovery] list hit, targetUrl=' ++ vars.targetUrl]"
+                            doc:name="Log list hit"/>
+                    </when>
+
+                    <otherwise>
+                        <!-- Step 3 — parallel ping all configured hosts -->
+                        <logger level="INFO"
+                            message="[sf-url-discovery] No cached URL — pinging all First Data hosts"
+                            doc:name="Log ping start"/>
+
+                        <set-variable
+                            variableName="fdServerHosts"
+                            value="#[p('sys.server.hosts') splitBy ',']"
+                            doc:name="Split server host list"/>
+
+                        <parallel-foreach
+                            doc:name="Ping All First Data Hosts"
+                            collection="#[vars.fdServerHosts]">
+                            <try doc:name="Try ping one host">
+                                <set-variable variableName="pingHost" value="#[payload]" doc:name="Capture host"/>
+                                <set-variable
+                                    variableName="pingStartMs"
+                                    value="#[(now() as Number {unit: 'milliseconds'})]"
+                                    doc:name="Record start time"/>
+                                <ee:transform doc:name="Build Ping XML">
+                                    <ee:message>
+                                        <ee:set-payload><![CDATA[%dw 2.0
+output application/xml encoding="UTF-8"
+---
+{
+  Request @(Version: p('sys.request-version')): {
+    ReqClientID: {
+      DID: vars.merchantConfig.did,
+      App: vars.merchantConfig.appId,
+      Auth: vars.merchantConfig.merchantId ++ "|" ++ vars.merchantConfig.tid,
+      ClientRef: {}
+    },
+    Ping: {
+      ServiceID: vars.merchantConfig.serviceId as Number
+    }
+  }
+}]]></ee:set-payload>
+                                    </ee:message>
+                                </ee:transform>
+                                <http:request
+                                    method="POST"
+                                    url="#['https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.merchantConfig.serviceId]"
+                                    config-ref="fdHttpRequestConfig"
+                                    doc:name="Ping First Data host">
+                                    <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "Content-Type" : "application/xml; charset=utf-8",
+    "User-Agent"   : p('sys.user-agent')
+}]]]></http:headers>
+                                    <http:response-validator>
+                                        <http:success-status-code-validator values="200..599"/>
+                                    </http:response-validator>
+                                </http:request>
+                                <set-payload
+                                    value="#[{url: 'https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.merchantConfig.serviceId, ms: ((now() as Number {unit: 'milliseconds'}) - vars.pingStartMs)}]"
+                                    doc:name="Set ping result"/>
+                                <error-handler>
+                                    <on-error-continue type="ANY" doc:name="Ping failed — use max latency">
+                                        <set-payload
+                                            value="#[{url: 'https://' ++ vars.pingHost ++ '/' ++ p('sys.path-suffix') ++ '/' ++ vars.merchantConfig.serviceId, ms: 999999}]"
+                                            doc:name="Set unreachable result"/>
+                                    </on-error-continue>
+                                </error-handler>
+                            </try>
+                        </parallel-foreach>
+
+                        <ee:transform doc:name="Sort by fastest and build URL list">
+                            <ee:variables>
+                                <ee:set-variable variableName="sortedUrlList"><![CDATA[%dw 2.0
+output application/java
+var sorted = payload orderBy $.ms
+---
+(sorted map $.url) joinBy ',']]></ee:set-variable>
+                                <ee:set-variable variableName="targetUrl"><![CDATA[%dw 2.0
+output application/java
+var sorted = payload orderBy $.ms
+---
+sorted[0].url]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+
+                        <os:store
+                            key="fd_current_url"
+                            objectStore="fdUrlObjectStore"
+                            doc:name="Cache fastest URL">
+                            <os:value>#[vars.targetUrl]</os:value>
+                        </os:store>
+                        <os:store
+                            key="fd_urls_list"
+                            objectStore="fdUrlObjectStore"
+                            doc:name="Cache sorted URL list">
+                            <os:value>#[vars.sortedUrlList]</os:value>
+                        </os:store>
+
+                        <logger level="INFO"
+                            message="#['[sf-url-discovery] ping complete, fastest=' ++ vars.targetUrl]"
+                            doc:name="Log ping result"/>
+                    </otherwise>
+
+                </choice>
+            </otherwise>
+        </choice>
+
+    </sub-flow>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         sf-encrypt-pin
+         3DES PIN encryption (DESede/CBC/NoPadding) matching Apigee v1 behavior.
+         Input:  vars.pin           (plain text PIN string)
+                 vars.merchantConfig.merchantKey (colon-hex key string)
+         Output: vars.encryptedPin  (32-char lowercase hex EAN first 16 bytes)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-encrypt-pin" doc:name="sf-encrypt-pin">
+
+        <scripting:execute engine="groovy" doc:name="3DES Encrypt PIN">
+            <scripting:code><![CDATA[
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
+import javax.crypto.spec.IvParameterSpec
+import java.security.SecureRandom
+
+String pin      = vars.pin as String
+String keyHex   = vars.merchantConfig.merchantKey as String
+
+// Parse colon-separated hex key (24 bytes = 48 hex chars or 23 colons)
+String[] parts  = keyHex.split(":")
+byte[]   keyBytes = new byte[parts.length]
+parts.eachWithIndex { p, i -> keyBytes[i] = (int)(Integer.parseInt(p.trim(), 16) & 0xFF) }
+
+// Build EAN: hexRandom:hexChecksum:hexPIN
+byte[] randomBytes = new byte[4]
+new SecureRandom().nextBytes(randomBytes)
+String hexRandom   = randomBytes.collect { String.format('%02x', it & 0xFF) }.join('')
+
+// Simple checksum: XOR all chars of PIN
+int checksum = 0
+pin.each { c -> checksum ^= (int) c }
+String hexChecksum = String.format('%02x', checksum & 0xFF)
+
+// Encode PIN as hex
+String hexPIN = pin.bytes.collect { String.format('%02x', it & 0xFF) }.join('')
+
+String ean = hexRandom + hexChecksum + hexPIN
+
+// Pad EAN to 8-byte block boundary
+byte[] eanBytes = ean.bytes
+int padLen = (8 - (eanBytes.length % 8)) % 8
+if (padLen > 0) {
+    ean = ean + ('\0' * padLen)
+}
+eanBytes = ean.bytes
+
+// Encrypt DESede/CBC/NoPadding with zero IV
+Cipher cipher = Cipher.getInstance("DESede/CBC/NoPadding")
+cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "DESede"), new IvParameterSpec(new byte[8]))
+byte[] encrypted = cipher.doFinal(eanBytes)
+
+// Return first 8 bytes (16 hex chars) then pad to 32 chars
+String result = encrypted.collect { String.format('%02x', it & 0xFF) }.join('')
+result = result.length() >= 32 ? result.substring(0, 32) : result
+
+vars['encryptedPin'] = result
+]]></scripting:code>
+        </scripting:execute>
+
+    </sub-flow>
+
+</mule>

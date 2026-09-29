@@ -1,0 +1,12 @@
+{
+  "request_id": "REQ-20260929-004",
+  "transaction_result": {
+    "is_succeeded": true,
+    "card_number": "6006200000000000",
+    "balance": {
+      "value": 50.00,
+      "currency_code": "USD"
+    },
+    "lock_id": null
+  }
+}

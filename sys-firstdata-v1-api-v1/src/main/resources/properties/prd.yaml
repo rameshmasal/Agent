@@ -1,0 +1,39 @@
+sys-firstdata-v1:
+  http-listener:
+    port: "8081"
+    path: "/sys/firstdata/v1/*"
+
+sys-firstdata-v1-api:
+  http-listener:
+    autodiscovery-id: "REPLACE_WITH_PRD_API_MANAGER_INSTANCE_ID"
+
+sys:
+  server:
+    hosts: "vxn.datawire.net:443,vxn1.datawire.net:443"
+  default-server-host: "vxn.datawire.net"
+  path-suffix: "sd"
+  service-id: "104"
+  request-version: "3"
+  application-version: "V001000"
+  payload-encoding: "datawire"
+  transaction-prefix: "SV."
+  field-separator: "|1C"
+  user-agent: "vxnapi_xml_3_2_0_19"
+  timeout-responses: "205,8"
+  invalidate-cache-responses: "8"
+  url-cache-ttl: "300"
+  app-id: "NWLECOMMWGIFTXML"
+  tid: "00000000002"
+  terminal-id: "0001"
+  merchant-key-id: "1002"
+  source-code: "30"
+  activate-promo-code: "30253"
+  balance-tx-code: "2400"
+  activate-tx-code: "2104"
+  lock-tx-code: "2408"
+  unlock-tx-code: "2208"
+  timeout-reversal-tx-code: "0704"
+  activate-enabled: "false"
+
+notification:
+  enabled: "true"

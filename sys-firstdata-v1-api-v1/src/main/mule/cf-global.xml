@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+      xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+            http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http
+            http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/secure-properties
+            http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway
+            http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/os
+            http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+    <!-- ── Property Sources ──────────────────────────────────────────────── -->
+    <configuration-properties
+        doc:name="Plain properties"
+        file="properties/${env}.yaml" />
+
+    <secure-properties:config
+        doc:name="Secure properties"
+        file="properties/${env}-secure.yaml"
+        key="${masterKey}"
+        name="securePropertiesConfig">
+        <secure-properties:encrypt algorithm="Blowfish" mode="CBC" />
+    </secure-properties:config>
+
+    <!-- ── API Gateway Auto-discovery ───────────────────────────────────── -->
+    <api-gateway:autodiscovery
+        doc:name="API Manager autodiscovery"
+        apiId="${sys-firstdata-v1-api.http-listener.autodiscovery-id}"
+        flowRef="sys-firstdata-v1-api-v1-main" />
+
+    <!-- ── Outbound HTTP to First Data Datawire ──────────────────────────── -->
+    <http:request-config
+        name="fdHttpRequestConfig"
+        doc:name="First Data HTTP Request Config"
+        responseTimeout="30000">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${sys.default-server-host}"
+            port="443" />
+    </http:request-config>
+
+    <!-- ── Object Store for URL discovery cache ──────────────────────────── -->
+    <os:object-store
+        name="fdUrlObjectStore"
+        doc:name="FD URL Cache"
+        maxEntries="10"
+        entryTtl="${sys.url-cache-ttl}"
+        entryTtlUnit="SECONDS"
+        persistent="false" />
+
+</mule>

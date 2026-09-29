@@ -1,0 +1,10 @@
+{
+  "request_id": "REQ-20260929-001",
+  "client_reference_number": "ORDER-12345",
+  "transaction": {
+    "card_number": "6006200000000000",
+    "card_pin": "1234",
+    "currency_code": "USD",
+    "id": "TXN-20260929-001"
+  }
+}

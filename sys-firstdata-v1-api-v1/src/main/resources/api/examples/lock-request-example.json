@@ -1,0 +1,12 @@
+{
+  "request_id": "REQ-20260929-003",
+  "transaction": {
+    "card_number": "6006200000000000",
+    "card_pin": "1234",
+    "id": "TXN-20260929-003"
+  },
+  "lock_transaction": {
+    "transaction_amount": 25.00,
+    "currency_code": "USD"
+  }
+}

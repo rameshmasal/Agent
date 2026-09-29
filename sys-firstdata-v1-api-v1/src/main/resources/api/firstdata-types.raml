@@ -1,0 +1,208 @@
+#%RAML 1.0 Library
+
+types:
+
+  # ── Common nested structures ──────────────────────────────────────────────
+  TransactionInfo:
+    type: object
+    description: Core card and transaction identifiers (mirrors Apigee v1 field names)
+    properties:
+      card_number:
+        type: string
+        required: true
+        description: Gift card PAN
+        example: "6006200000000000"
+      card_pin:
+        type: string
+        required: true
+        description: Gift card PIN — encrypted by the API before sending to First Data
+        example: "1234"
+      currency_code:
+        type: string
+        required: false
+        default: "USD"
+        enum: [USD, CAD]
+        description: ISO 4217 currency code
+      id:
+        type: string
+        required: false
+        description: Caller correlation / transaction ID (sent in FD field 15)
+      extended_account_number:
+        type: string
+        required: false
+        description: Extended account number (EAN) — rarely used
+
+  ActivateTransactionInfo:
+    type: object
+    description: Activate-specific fields
+    properties:
+      transaction_amount:
+        type: number
+        required: true
+        minimum: 0.01
+        description: Amount to load in dollars (e.g. 50.00)
+        example: 50.00
+      currency_code:
+        type: string
+        required: false
+        default: "USD"
+        enum: [USD, CAD]
+
+  LockTransactionInfo:
+    type: object
+    description: Lock-specific fields (partial hold)
+    properties:
+      transaction_amount:
+        type: number
+        required: true
+        minimum: 0.01
+        description: Amount to lock in dollars
+        example: 25.00
+      currency_code:
+        type: string
+        required: false
+        default: "USD"
+        enum: [USD, CAD]
+
+  UnlockTransactionInfo:
+    type: object
+    description: Unlock-specific fields
+    properties:
+      transaction_amount:
+        type: number
+        required: true
+        minimum: 0.01
+        description: Amount to unlock in dollars
+        example: 25.00
+      lock_id:
+        type: string
+        required: true
+        description: Lock ID returned by the prior lock call (FD field 79)
+        example: "987654321"
+      currency_code:
+        type: string
+        required: false
+        default: "USD"
+        enum: [USD, CAD]
+
+  # ── Request types ─────────────────────────────────────────────────────────
+  BalanceRequest:
+    type: object
+    description: Gift card balance enquiry
+    properties:
+      request_id:
+        type: string
+        required: false
+        description: Optional caller request ID — echoed back in response
+      client_reference_number:
+        type: string
+        required: false
+        description: Caller reference number
+      transaction:
+        type: TransactionInfo
+        required: true
+
+  ActivateRequest:
+    type: object
+    description: Gift card activation and fund load
+    properties:
+      request_id:
+        type: string
+        required: false
+      transaction:
+        type: TransactionInfo
+        required: true
+      activate_transaction:
+        type: ActivateTransactionInfo
+        required: true
+
+  LockRequest:
+    type: object
+    description: Partial hold — reserve funds on a gift card
+    properties:
+      request_id:
+        type: string
+        required: false
+      transaction:
+        type: TransactionInfo
+        required: true
+      lock_transaction:
+        type: LockTransactionInfo
+        required: true
+
+  UnlockRequest:
+    type: object
+    description: Release previously locked funds
+    properties:
+      request_id:
+        type: string
+        required: false
+      transaction:
+        type: TransactionInfo
+        required: true
+      unlock_transaction:
+        type: UnlockTransactionInfo
+        required: true
+
+  # ── Response types ────────────────────────────────────────────────────────
+  Balance:
+    type: object
+    properties:
+      value:
+        type: number
+        description: Balance in dollars (e.g. 50.00)
+      currency_code:
+        type: string?
+        description: ISO 4217 currency code
+
+  TransactionResult:
+    type: object
+    description: Common result fields returned for every operation
+    properties:
+      is_succeeded:
+        type: boolean
+        description: True when FD statusCode=OK and returnCode=00
+      card_number:
+        type: string?
+        description: Echoed card number (FD field 70)
+      balance:
+        type: Balance?
+        description: Net available balance (field 76 minus field 78, in dollars)
+      expiration_date:
+        type: string?
+        description: Card expiry (FD field A0)
+      card_class:
+        type: string?
+        description: Card class (FD field B0)
+      promotion_code:
+        type: string?
+        description: Promotion code applied (FD field F2)
+      lock_id:
+        type: string?
+        description: Lock ID — present in lock/unlock responses (FD field 79)
+      error_description:
+        type: string?
+        description: Human-readable description of FD response code when is_succeeded=false
+
+  TransactionResponse:
+    type: object
+    description: Top-level response wrapper
+    properties:
+      request_id:
+        type: string?
+        description: Echoed from the request if provided
+      transaction_result:
+        type: TransactionResult
+        required: true
+
+  BalanceResponse:
+    type: TransactionResponse
+
+  ActivateResponse:
+    type: TransactionResponse
+
+  LockResponse:
+    type: TransactionResponse
+
+  UnlockResponse:
+    type: TransactionResponse
