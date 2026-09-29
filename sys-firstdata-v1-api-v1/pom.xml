@@ -87,12 +87,11 @@
             <version>2.1.3</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-        <!-- Groovy engine — required by mule-scripting-module 2.x (not bundled) -->
+        <!-- Groovy JSR-223 engine — required by mule-scripting-module 2.x (not bundled) -->
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
+            <artifactId>groovy-jsr223</artifactId>
             <version>3.0.19</version>
-            <type>pom</type>
         </dependency>
         <dependency>
             <groupId>org.mule.connectors</groupId>
