@@ -235,30 +235,24 @@ import javax.crypto.spec.SecretKeySpec
 import javax.crypto.spec.IvParameterSpec
 import java.security.SecureRandom
 
-String pin      = vars.pin as String
-String keyHex   = vars.merchantConfig.merchantKey as String
+String pin    = vars.pin as String
+String keyHex = vars.merchantConfig.merchantKey as String
 
-// Parse colon-separated hex key (24 bytes = 48 hex chars or 23 colons)
 String[] parts  = keyHex.split(":")
 byte[]   keyBytes = new byte[parts.length]
 parts.eachWithIndex { p, i -> keyBytes[i] = (int)(Integer.parseInt(p.trim(), 16) & 0xFF) }
 
-// Build EAN: hexRandom:hexChecksum:hexPIN
 byte[] randomBytes = new byte[4]
 new SecureRandom().nextBytes(randomBytes)
-String hexRandom   = randomBytes.collect { String.format('%02x', it & 0xFF) }.join('')
+String hexRandom = randomBytes.collect { String.format('%02x', it & 0xFF) }.join('')
 
-// Simple checksum: XOR all chars of PIN
 int checksum = 0
 pin.each { c -> checksum ^= (int) c }
 String hexChecksum = String.format('%02x', checksum & 0xFF)
 
-// Encode PIN as hex
 String hexPIN = pin.bytes.collect { String.format('%02x', it & 0xFF) }.join('')
+String ean    = hexRandom + hexChecksum + hexPIN
 
-String ean = hexRandom + hexChecksum + hexPIN
-
-// Pad EAN to 8-byte block boundary
 byte[] eanBytes = ean.bytes
 int padLen = (8 - (eanBytes.length % 8)) % 8
 if (padLen > 0) {
@@ -266,18 +260,15 @@ if (padLen > 0) {
 }
 eanBytes = ean.bytes
 
-// Encrypt DESede/CBC/NoPadding with zero IV
 Cipher cipher = Cipher.getInstance("DESede/CBC/NoPadding")
 cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "DESede"), new IvParameterSpec(new byte[8]))
 byte[] encrypted = cipher.doFinal(eanBytes)
 
-// Return first 8 bytes (16 hex chars) then pad to 32 chars
 String result = encrypted.collect { String.format('%02x', it & 0xFF) }.join('')
-result = result.length() >= 32 ? result.substring(0, 32) : result
-
-vars['encryptedPin'] = result
+result.length() >= 32 ? result.substring(0, 32) : result
 ]]></scripting:code>
         </scripting:execute>
+        <set-variable variableName="encryptedPin" value="#[payload]" doc:name="Store encrypted PIN"/>
 
     </sub-flow>
 
