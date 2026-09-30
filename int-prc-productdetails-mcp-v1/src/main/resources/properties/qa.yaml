@@ -15,5 +15,5 @@ prc-productdetails-api:
   descriptions-path: "/q/prc/productdetails/v1/descriptions"
   weightsandmeasures-path: "/q/prc/productdetails/v1/weightsandmeasures"
   plantinfo-path: "/q/prc/productdetails/v1/plantInfo"
-  client-id: "REPLACE_WITH_QA_CLIENT_ID"
+  client-id: "21e26990179641228e261d3207a76771"
   timeout: "300000"
