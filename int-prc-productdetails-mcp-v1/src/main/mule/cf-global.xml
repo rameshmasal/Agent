@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:mcp="http://www.mulesoft.org/schema/mule/mcp"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mcp http://www.mulesoft.org/schema/mule/mcp/current/mule-mcp.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+
+	<configuration-properties doc:name="Configuration properties" file="properties/${env}.yaml"/>
+	<secure-properties:config name="Secure_Properties_Config1" doc:name="Secure Properties Config" file="properties/${env}-secure.yaml" key="${masterKey}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+
+	<!-- Inbound: MCP clients connect here -->
+	<http:listener-config name="int-prc-productdetails-mcp-v1-httpListenerConfig" doc:name="HTTP Listener config">
+		<http:listener-connection host="0.0.0.0" port="${int-prc-productdetails-mcp.http-listener.port}" />
+	</http:listener-config>
+
+	<!-- MCP server (Streamable HTTP transport) -->
+	<mcp:server-config name="int-prc-productdetails-mcp-v1-server" serverName="${int-prc-productdetails-mcp.mcp-server.name}" serverVersion="${int-prc-productdetails-mcp.mcp-server.version}" doc:name="MCP Server config">
+		<mcp:streamable-http-server-connection listenerConfig="int-prc-productdetails-mcp-v1-httpListenerConfig" mcpEndpointPath="${int-prc-productdetails-mcp.mcp-server.endpoint-path}" />
+	</mcp:server-config>
+
+	<!-- Outbound: prc-productdetails-api-v1 -->
+	<http:request-config name="prc-productdetails-api-configuration" doc:name="HTTP Request configuration" responseTimeout="${prc-productdetails-api.timeout}">
+		<http:request-connection host="${prc-productdetails-api.host}" port="${prc-productdetails-api.port}" connectionIdleTimeout="${prc-productdetails-api.timeout}" protocol="HTTPS"/>
+	</http:request-config>
+</mule>

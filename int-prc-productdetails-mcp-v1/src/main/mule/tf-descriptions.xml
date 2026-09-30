@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:mcp="http://www.mulesoft.org/schema/mule/mcp"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mcp http://www.mulesoft.org/schema/mule/mcp/current/mule-mcp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<flow name="tf-get-product-description">
+		<mcp:tool-listener config-ref="int-prc-productdetails-mcp-v1-server" name="get_product_description">
+			<mcp:description>Get the description of a Newell product in another language. Returns the description, the language code and the full language name.</mcp:description>
+			<mcp:parameters-schema><![CDATA[{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "productId": {
+            "type": "string",
+            "description": "SAP product (material) number, for example 30001."
+        },
+        "lang": {
+            "type": "string",
+            "description": "Optional two-letter ISO language code, for example FR, DE, ES or ZH.",
+            "minLength": 2,
+            "maxLength": 2
+        }
+    },
+    "required": [
+        "productId"
+    ]
+}]]></mcp:parameters-schema>
+			<mcp:responses>
+				<mcp:text-tool-response-content text="#[payload.^raw]" />
+			</mcp:responses>
+			<mcp:on-error-responses>
+				<mcp:text-tool-response-content text="#['Error: $(error.description)']" />
+			</mcp:on-error-responses>
+		</mcp:tool-listener>
+
+		<set-variable value="${prc-productdetails-api.descriptions-path}" doc:name="apiPath" variableName="apiPath"/>
+		<choice doc:name="validate-lang">
+			<when expression="#[!isEmpty(payload.lang default '') and sizeOf(payload.lang as String) != 2]">
+				<raise-error doc:name="bad-request" type="APP:BAD_REQUEST" description="lang must be a two-letter ISO language code, for example FR."/>
+			</when>
+		</choice>
+		<ee:transform doc:name="query-params">
+			<ee:variables>
+				<ee:set-variable variableName="queryParams"><![CDATA[%dw 2.0
+output application/java
+---
+{ productId: (payload.productId default "") as String }
+++ (if (!isEmpty(payload.lang default "")) { lang: upper(payload.lang as String) } else {})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-prc-productdetails-call" name="sf-prc-productdetails-call"/>
+	</flow>
+</mule>

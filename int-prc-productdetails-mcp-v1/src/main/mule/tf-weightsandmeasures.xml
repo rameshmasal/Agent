@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:mcp="http://www.mulesoft.org/schema/mule/mcp"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mcp http://www.mulesoft.org/schema/mule/mcp/current/mule-mcp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<flow name="tf-get-product-weights-and-measures">
+		<mcp:tool-listener config-ref="int-prc-productdetails-mcp-v1-server" name="get_product_weights_and_measures">
+			<mcp:description>Get logistical data for a Newell product: weights, dimensions and units of measure. The data comes from Windchill when the product status is 10 and from SAP when it is above 10. Empty fields are omitted.</mcp:description>
+			<mcp:parameters-schema><![CDATA[{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "productId": {
+            "type": "string",
+            "description": "SAP product (material) number, for example 30001."
+        }
+    },
+    "required": [
+        "productId"
+    ]
+}]]></mcp:parameters-schema>
+			<mcp:responses>
+				<mcp:text-tool-response-content text="#[payload.^raw]" />
+			</mcp:responses>
+			<mcp:on-error-responses>
+				<mcp:text-tool-response-content text="#['Error: $(error.description)']" />
+			</mcp:on-error-responses>
+		</mcp:tool-listener>
+
+		<set-variable value="${prc-productdetails-api.weightsandmeasures-path}" doc:name="apiPath" variableName="apiPath"/>
+		<ee:transform doc:name="query-params">
+			<ee:variables>
+				<ee:set-variable variableName="queryParams"><![CDATA[%dw 2.0
+output application/java
+---
+{ productId: (payload.productId default "") as String }]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-prc-productdetails-call" name="sf-prc-productdetails-call"/>
+	</flow>
+</mule>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<!-- Shared call to prc-productdetails-api-v1.
+	     In : vars.apiPath (full path), vars.queryParams (object, productId required)
+	     Out: payload = trimmed JSON of the API response, or an APP:* error whose description is returned to the MCP client -->
+	<sub-flow name="sf-prc-productdetails-call">
+		<choice doc:name="validate-productId">
+			<when expression='#[isEmpty(vars.queryParams.productId default "")]'>
+				<raise-error doc:name="bad-request" type="APP:BAD_REQUEST" description="productId is required."/>
+			</when>
+		</choice>
+
+		<logger level="INFO" doc:name="log-request" message="MCP tool calling #[vars.apiPath] for productId #[vars.queryParams.productId]"/>
+
+		<http:request
+			doc:name="prc-productdetails-request"
+			config-ref="prc-productdetails-api-configuration"
+			method="GET"
+			path="#[vars.apiPath]">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+    "client_secret" : "${secure::prc-productdetails-api.client-secret}",
+    "client_id" : "${prc-productdetails-api.client-id}",
+    "x-transaction-id" : correlationId
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[vars.queryParams]]]></http:query-params>
+			<http:response-validator>
+				<http:success-status-code-validator values="100..599"/>
+			</http:response-validator>
+		</http:request>
+
+		<choice doc:name="validate-status">
+			<when expression="#[attributes.statusCode == 200]">
+				<ee:transform doc:name="trim-empty-fields">
+					<ee:message>
+						<ee:set-payload resource="transformdata/trim-empty-response.dwl" />
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression="#[attributes.statusCode == 404]">
+				<raise-error doc:name="not-found" type="APP:NOT_FOUND" description="#['No data found for productId ' ++ (vars.queryParams.productId as String)]"/>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="build-error-message">
+					<ee:variables>
+						<ee:set-variable variableName="apiErrorMsg"><![CDATA[%dw 2.0
+output application/java
+var raw = (payload as String default "")
+var snippet = if (sizeOf(raw) > 300) raw[0 to 299] else raw
+---
+"Product details API returned HTTP $(attributes.statusCode): $(snippet)"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<raise-error doc:name="api-error" type="APP:PRODUCT_API_ERROR" description="#[vars.apiErrorMsg]"/>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

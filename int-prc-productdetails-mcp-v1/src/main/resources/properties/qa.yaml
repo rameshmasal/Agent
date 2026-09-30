@@ -1,0 +1,19 @@
+#MCP server configuration
+int-prc-productdetails-mcp:
+  http-listener:
+    port: "8081"
+  mcp-server:
+    name: "prc-productdetails-mcp"
+    version: "1.0.0"
+    endpoint-path: "/mcp"
+
+#prc-productdetails-api (downstream process API)
+prc-productdetails-api:
+  host: "qa.apis.newellbrands.com"
+  port: "443"
+  basic-path: "/q/prc/productdetails/v1/basic"
+  descriptions-path: "/q/prc/productdetails/v1/descriptions"
+  weightsandmeasures-path: "/q/prc/productdetails/v1/weightsandmeasures"
+  plantinfo-path: "/q/prc/productdetails/v1/plantInfo"
+  client-id: "REPLACE_WITH_QA_CLIENT_ID"
+  timeout: "300000"

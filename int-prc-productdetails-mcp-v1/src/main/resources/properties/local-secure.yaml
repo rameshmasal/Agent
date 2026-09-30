@@ -1,0 +1,3 @@
+#prc-productdetails-api (downstream process API) - local only, plain text
+prc-productdetails-api:
+  client-secret: "REPLACE_WITH_LOCAL_CLIENT_SECRET"

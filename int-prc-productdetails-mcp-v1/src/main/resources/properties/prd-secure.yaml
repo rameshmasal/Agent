@@ -1,0 +1,3 @@
+#prc-productdetails-api (downstream process API)
+prc-productdetails-api:
+  client-secret: "![REPLACE_WITH_ENCRYPTED_PRD_CLIENT_SECRET]"
