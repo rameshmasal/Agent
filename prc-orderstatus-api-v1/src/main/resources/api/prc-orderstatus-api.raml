@@ -1,0 +1,54 @@
+#%RAML 1.0
+version: v1.0
+title: Order status API
+protocols: HTTPS
+
+documentation:
+  - title: Order status API
+    content: This API returns the latest status of an order from the ucp_order_latest_status table.
+
+uses:
+  lib: exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+types:
+  OrderStatus:
+    type: object
+    properties:
+      orderId: string
+      brand: string
+      siteId: string
+      latestEventNumber: integer
+      latestEventOccuredAt: string
+      orderStatus: string
+      orderSnapshot: any
+      createdAt: string
+      updatedAt: string
+      transactionNumber: string
+
+/orderstatus/{orderId}:
+  uriParameters:
+    orderId:
+      type: string
+      description: Order id, for example 123435
+  description: Get the latest status of an order
+  is: [lib.trackable,lib.returns-400,lib.returns-401,lib.returns-404,lib.returns-405,lib.returns-406,lib.returns-500,lib.returns-501,lib.client-credentials]
+  get:
+    description: Fetches the order from the database and returns it as JSON
+    responses:
+      200:
+        body:
+          application/json:
+            type: OrderStatus
+            example: |
+              {
+                "orderId": "123435",
+                "brand": "Rubbermaid",
+                "siteId": "RubbermaidUS",
+                "latestEventNumber": 12,
+                "latestEventOccuredAt": "2026-10-08T10:45:00Z",
+                "orderStatus": "SHIPPED",
+                "orderSnapshot": {},
+                "createdAt": "2026-10-07T09:00:00Z",
+                "updatedAt": "2026-10-08T10:45:00Z",
+                "transactionNumber": "T-0001"
+              }

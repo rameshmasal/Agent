@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+	<munit:config name="prc-orderstatus-api-test-suite.xml" />
+
+	<munit:test name="get-order-status-200-test" description="Returns the order as JSON when the order exists">
+		<munit:behavior>
+			<munit-tools:mock-when processor="db:select">
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[[{order_id: '123435', brand: 'Rubbermaid', site_id: 'RubbermaidUS', latest_event_number: 12, latest_event_occured_at: '2026-10-08T10:45:00Z', order_status: 'SHIPPED', order_snapshot: '{&quot;lines&quot;:[]}', created_at: '2026-10-07T09:00:00Z', updated_at: '2026-10-08T10:45:00Z', transaction_number: 'T-0001'}]]]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when processor="mule:flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="name" whereValue="sf-splunk-sub-flow" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="123435" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[payload.orderId]" is="#[MunitTools::equalTo('123435')]" />
+			<munit-tools:assert-that expression="#[payload.orderStatus]" is="#[MunitTools::equalTo('SHIPPED')]" />
+			<munit-tools:assert-that expression="#[payload.orderSnapshot.lines]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+	<munit:test name="get-order-status-404-test" description="Returns 404 when the order does not exist">
+		<munit:behavior>
+			<munit-tools:mock-when processor="db:select">
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[[]]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="999" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[vars.httpStatus]" is="#[MunitTools::equalTo(404)]" />
+			<munit-tools:assert-that expression="#[payload.'status-code']" is="#[MunitTools::equalTo('404')]" />
+		</munit:validation>
+	</munit:test>
+</mule>

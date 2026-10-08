@@ -1,0 +1,4 @@
+# TODO: replace with Blowfish-encrypted value, for example "![encrypted-value]"
+prc-orderstatus-api:
+  database:
+    password: "REPLACE_WITH_ENCRYPTED_DB_PASSWORD"

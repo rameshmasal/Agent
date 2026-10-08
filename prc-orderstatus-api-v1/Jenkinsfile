@@ -1,0 +1,11 @@
+library identifier: 'drupal-jenkins@master', 
+        retriever: modernSCM(
+          [
+            $class: 'GitSCMSource',
+            remote: 'git@github.com:NewellBrands/drupal-jenkins.git',
+            credentialsId: 'github_ssh_key'
+          ]
+        )
+env.ANYPOINT_VCORES="0.1"
+env.ANYPOINT_WORKERS="1"
+mulesoftPipeline()

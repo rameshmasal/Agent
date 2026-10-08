@@ -1,0 +1,12 @@
+#Database details:
+prc-orderstatus-api:
+  database:
+    # TODO: confirm host/db name for ucp_order_latest_status in this environment
+    url: "jdbc:postgresql://REPLACE_DB_HOST:REPLACE_DB_PORT/REPLACE_DB_NAME_local"
+    driver: "org.postgresql.Driver"
+    username: "REPLACE_DB_USER"
+  http-listener:
+    port: "8093"
+    path: "/*"
+    # TODO: replace with the API Manager id before deploying
+    autodiscovery-id: "0"

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+
+	<http:listener-config name="HTTP-Listener">
+		<http:listener-connection host="0.0.0.0" port="${prc-orderstatus-api.http-listener.port}" />
+	</http:listener-config>
+	<apikit:config name="prc-orderstatus-api-config" api="prc-orderstatus-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<import doc:name="Import" file="pf-global-error-handler.xml" />
+	<import doc:name="Import" file="rf-build-error-flow.xml" />
+	<secure-properties:config name="Secure_Properties" doc:name="Secure Properties Config" file="properties/${env}-secure.yaml" key="${masterKey}">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<configuration-properties doc:name="Configuration properties" file="properties/${env}.yaml" />
+	<db:config name="Database_Config" doc:name="Database Config">
+		<db:generic-connection url="${prc-orderstatus-api.database.url}" driverClassName="${prc-orderstatus-api.database.driver}" user="${prc-orderstatus-api.database.username}" password="${secure::prc-orderstatus-api.database.password}" />
+	</db:config>
+	<api-gateway:autodiscovery apiId="${prc-orderstatus-api.http-listener.autodiscovery-id}" ignoreBasePath="true" doc:name="API Autodiscovery" flowRef="prc-orderstatus-api-main" />
+</mule>

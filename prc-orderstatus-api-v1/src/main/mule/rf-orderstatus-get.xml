@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<flow name="rf-orderstatus-get">
+		<logger level="INFO" doc:name="Flow started" message="#['Order status request for order id: ' ++ (vars.orderId default '')]"/>
+		<db:select doc:name="select order status" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT order_id, brand, site_id, latest_event_number, latest_event_occured_at, order_status, CAST(order_snapshot AS TEXT) AS order_snapshot, created_at, updated_at, transaction_number FROM ucp_order_latest_status WHERE order_id = :orderId]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'orderId': vars.orderId}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="check-record-found">
+			<when expression="#[isEmpty(payload)]">
+				<ee:transform doc:name="create-not-found-response">
+					<ee:message>
+						<ee:set-payload resource="transformation/order-not-found.dwl" />
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="not found log" message="#['Order not found: ' ++ (vars.orderId default '')]"/>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="create-response">
+					<ee:message>
+						<ee:set-payload resource="transformation/order-status-response.dwl" />
+					</ee:message>
+				</ee:transform>
+				<async doc:name="Async">
+					<flow-ref doc:name="sf-splunk-info" name="sf-splunk-info"/>
+				</async>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Process end" message="Process completed."/>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate">
+				<logger level="ERROR" doc:name="log error" message="Error in processing : #[error.detailedDescription]"/>
+				<async doc:name="Async">
+					<flow-ref doc:name="sf-splunk-error" name="sf-splunk-error"/>
+				</async>
+				<ee:transform doc:name="create-error-response">
+					<ee:message>
+						<ee:set-payload resource="transformation/error-response.dwl" />
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<sub-flow name="sf-splunk-info">
+		<ee:transform doc:name="create-splunk-request">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="log_cust_att"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"order-id" : vars.orderId default "",
+	"order-status" : payload.orderStatus default "",
+	"brand" : payload.brand default "",
+	"site-id" : payload.siteId default ""
+}]]></ee:set-variable>
+				<ee:set-variable variableName="SplunkMessage"><![CDATA["Order status API for order " ++ (vars.orderId default "")]]></ee:set-variable>
+				<ee:set-variable variableName="Status"><![CDATA["Info"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-splunk-sub-flow" name="sf-splunk-sub-flow"/>
+	</sub-flow>
+
+	<sub-flow name="sf-splunk-error">
+		<ee:transform doc:name="create-splunk-request">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="SplunkMessage"><![CDATA["Error in Order status API for order " ++ (vars.orderId default "") ++ ". Error : " ++ (error.description default "")]]></ee:set-variable>
+				<ee:set-variable variableName="log_cust_att"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"order-id" : vars.orderId default ""
+}]]></ee:set-variable>
+				<ee:set-variable variableName="Status"><![CDATA["Error"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-splunk-sub-flow" name="sf-splunk-sub-flow"/>
+	</sub-flow>
+</mule>
