@@ -1,8 +1,8 @@
-# prc-orderstatus-api-v1
+# prc-acorderstatus-api-v1
 
 Process API that returns the latest status of an order.
 
-`GET /orderstatus/{orderId}` looks the order up in the `ucp_order_latest_status` table and returns it as JSON.
+`GET /acorderstatus/{orderId}` looks the order up in the `ucp_order_latest_status` table and returns it as JSON.
 
 ## Overview
 
@@ -17,7 +17,7 @@ Process API that returns the latest status of an order.
 ## Endpoint
 
 ```
-GET /orderstatus/{orderId}
+GET /acorderstatus/{orderId}
 ```
 
 | Parameter | In | Required | Description |
@@ -65,8 +65,8 @@ GET /orderstatus/{orderId}
 
 ## How it works
 
-1. `pf-router` (APIkit) matches `GET /orderstatus/{orderId}` and saves `orderId` to `vars.orderId`.
-2. `rf-orderstatus-get` runs a parameterized select:
+1. `pf-router` (APIkit) matches `GET /acorderstatus/{orderId}` and saves `orderId` to `vars.orderId`.
+2. `rf-acorderstatus-get` runs a parameterized select:
    ```sql
    SELECT order_id, brand, site_id, latest_event_number, latest_event_occured_at,
           order_status, CAST(order_snapshot AS TEXT) AS order_snapshot,
@@ -84,9 +84,9 @@ GET /orderstatus/{orderId}
 src/main/mule/
   cf-global.xml            Listener, APIkit, DB and secure property configs
   pf-router.xml            Main flow, console flow and the GET dispatcher
-  rf-orderstatus-get.xml   Request flow plus Splunk sub-flows
+  rf-acorderstatus-get.xml   Request flow plus Splunk sub-flows
 src/main/resources/
-  api/prc-orderstatus-api.raml
+  api/prc-acorderstatus-api.raml
   transformation/          order-status-response, order-not-found, error-response (.dwl)
   properties/              {env}.yaml and {env}-secure.yaml for local, dev, qa, uat, prd
 src/test/munit/            MUnit suite (200 and 404)
@@ -98,11 +98,11 @@ Before the first run, replace the `REPLACE_*` values in `src/main/resources/prop
 
 | Property | File | Description |
 |---|---|---|
-| `prc-orderstatus-api.database.url` | `{env}.yaml` | JDBC URL |
-| `prc-orderstatus-api.database.username` | `{env}.yaml` | DB user |
-| `prc-orderstatus-api.database.password` | `{env}-secure.yaml` | DB password, Blowfish-encrypted |
-| `prc-orderstatus-api.http-listener.port` | `{env}.yaml` | Listener port (8093) |
-| `prc-orderstatus-api.http-listener.autodiscovery-id` | `{env}.yaml` | API Manager id (`0` until registered) |
+| `prc-acorderstatus-api.database.url` | `{env}.yaml` | JDBC URL |
+| `prc-acorderstatus-api.database.username` | `{env}.yaml` | DB user |
+| `prc-acorderstatus-api.database.password` | `{env}-secure.yaml` | DB password, Blowfish-encrypted |
+| `prc-acorderstatus-api.http-listener.port` | `{env}.yaml` | Listener port (8093) |
+| `prc-acorderstatus-api.http-listener.autodiscovery-id` | `{env}.yaml` | API Manager id (`0` until registered) |
 
 Runtime properties: `env` (for example `qa`) and `masterKey`.
 
@@ -116,7 +116,7 @@ mvn test -Denv=local -DmasterKey=<key>
 Call it locally:
 
 ```bash
-curl http://localhost:8093/orderstatus/123435
+curl http://localhost:8093/acorderstatus/123435
 ```
 
 ## Deployment
