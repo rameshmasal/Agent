@@ -354,6 +354,15 @@ payload.channel_id]"
     <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId):sys-scapi-api-v1-config">
         <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
     </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId)\images:sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId)\prices:sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId)\promotions:sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
     <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories:sys-scapi-api-v1-config">
         <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
     </flow>

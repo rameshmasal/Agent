@@ -878,142 +878,8 @@ uses:
                 additionalProperties: true
 
 # ─────────────────────────────────────────────────────────────
-# SHOPPER PRODUCTS V1
 # ─────────────────────────────────────────────────────────────
-/product/shopper-products/v1/organizations/{orgId}/products:
-  description: Shopper Products V1 — product batch lookup
-  is: [lib.trackable, lib.client-credentials]
-  uriParameters:
-    orgId:
-      type: string
-      required: true
-      example: f_ecom_bfgf_dev
-  get:
-    description: Get multiple products by IDs (batch lookup up to 24)
-    queryParameters:
-      siteId:
-        type: string
-        required: true
-        example: homefragranceus
-      ids:
-        type: string
-        required: true
-        description: Comma-separated product IDs
-        example: "SAP_1585173,SAP_1585174"
-    responses:
-      200:
-        body:
-          application/json:
-            type: object
-            additionalProperties: true
-
-  /{productId}:
-    description: Shopper Products V1 — single product
-    is: [lib.trackable, lib.client-credentials]
-    uriParameters:
-      productId:
-        type: string
-        required: true
-        example: SAP_1585173
-    get:
-      description: Get product detail by product ID
-      queryParameters:
-        siteId:
-          type: string
-          required: true
-          example: homefragranceus
-      responses:
-        200:
-          body:
-            application/json:
-              type: object
-              additionalProperties: true
-
-/product/shopper-products/v1/organizations/{orgId}/categories/{categoryId}:
-  description: Shopper Products V1 — category detail
-  is: [lib.trackable, lib.client-credentials]
-  uriParameters:
-    orgId:
-      type: string
-      required: true
-      example: f_ecom_bfgf_dev
-    categoryId:
-      type: string
-      required: true
-      example: mens-clothing
-  get:
-    description: Get category detail and sub-categories
-    queryParameters:
-      siteId:
-        type: string
-        required: true
-        example: homefragranceus
-    responses:
-      200:
-        body:
-          application/json:
-            type: object
-            additionalProperties: true
-
-# ─────────────────────────────────────────────────────────────
-# SHOPPER SEARCH V1
-# ─────────────────────────────────────────────────────────────
-/search/shopper-search/v1/organizations/{orgId}/product-search:
-  description: Shopper Search V1 — product search
-  is: [lib.trackable, lib.client-credentials]
-  uriParameters:
-    orgId:
-      type: string
-      required: true
-      example: f_ecom_bfgf_dev
-  get:
-    description: Search products by keyword, category, refinements
-    queryParameters:
-      siteId:
-        type: string
-        required: true
-        example: homefragranceus
-      q:
-        type: string
-        required: false
-        description: Search query string
-        example: "candle"
-    responses:
-      200:
-        body:
-          application/json:
-            type: object
-            additionalProperties: true
-
-/search/shopper-search/v1/organizations/{orgId}/search-suggestions:
-  description: Shopper Search V1 — search suggestions
-  is: [lib.trackable, lib.client-credentials]
-  uriParameters:
-    orgId:
-      type: string
-      required: true
-      example: f_ecom_bfgf_dev
-  get:
-    description: Get typeahead search suggestions
-    queryParameters:
-      siteId:
-        type: string
-        required: true
-        example: homefragranceus
-      q:
-        type: string
-        required: true
-        description: Search query string for suggestions
-        example: "cand"
-    responses:
-      200:
-        body:
-          application/json:
-            type: object
-            additionalProperties: true
-
-# ─────────────────────────────────────────────────────────────
-# SHOPPER PRODUCTS V1
+# SHOPPER PRODUCTS V1  (v1.13.0)
 # ─────────────────────────────────────────────────────────────
 /product/shopper-products/v1/organizations/{orgId}/products:
   description: Shopper Products V1 — product collection
@@ -1025,47 +891,61 @@ uses:
       example: f_ecom_bfgf_dev
   get:
     description: |
-      Get multiple products by id (maximum 24 ids per request).
-      Use expand to include images, prices, promotions, variations, etc.
+      Get multiple products (max 24 ids). Only online products assigned to a
+      site catalog are returned. Required scope sfcc.shopper-products.
     queryParameters:
       siteId:
         type: string
         required: true
-        example: homefragranceus
-      ids:
-        type: string
-        required: true
-        description: Comma-separated product ids (max 24)
-        example: "25518447M,25518704M"
-      expand:
-        type: string
-        required: false
-        description: |
-          Comma-separated list, e.g. availability, bundled_products, links,
-          promotions, options, images, prices, variations, set_products,
-          recommendations
-        example: "images,prices,promotions"
-      inventoryIds:
-        type: string
-        required: false
-      currency:
-        type: string
-        required: false
-        example: USD
+        example: RefArch
       locale:
         type: string
         required: false
         example: en-US
+      personalized:
+        type: string
+        required: false
+        enum: [none]
+        description: Set to none to opt out of personalized response handling (CDN-cacheable)
+      ids:
+        type: string
+        required: true
+        description: Comma-separated product ids (max 24)
+        example: "25695327M,25519318M"
+      expand:
+        type: string
+        required: false
+        description: |
+          Comma-separated. none, availability (deprecated), bundled_products, links,
+          promotions, options, images, prices, variations, set_products,
+          recommendations, shipping_methods, page_meta_tags, primary_category, slug.
+          All except page_meta_tags and slug apply when omitted.
+        example: "prices,promotions"
+      inventoryIds:
+        type: string
+        required: false
+        description: Comma-separated inventory list ids (max 5)
+      currency:
+        type: string
+        required: false
+        example: USD
       allImages:
         type: boolean
         required: false
+      imgTypes:
+        type: string
+        required: false
+        maxLength: 50
+        description: Requires expand=images. Format viewType:count,viewType:count
+        example: "large:3,small:1"
       perPricebook:
         type: boolean
         required: false
       select:
         type: string
         required: false
-        description: Selector to limit the response fields
+        description: Property selector, e.g. (**)
+        example: "(**)"
     responses:
       200:
         body:
@@ -1080,42 +960,166 @@ uses:
       productId:
         type: string
         required: true
-        example: 25518447M
+        example: 25695327M
     get:
-      description: Get a single product (details, variants, images, prices, promotions)
+      description: Get details for a single product
       queryParameters:
         siteId:
           type: string
           required: true
-          example: homefragranceus
-        expand:
-          type: string
-          required: false
-          example: "images,prices,promotions,variations"
-        inventoryIds:
-          type: string
-          required: false
-        currency:
-          type: string
-          required: false
+          example: RefArch
         locale:
           type: string
           required: false
+          example: en-US
+        personalized:
+          type: string
+          required: false
+          enum: [none]
+          description: Set to none to opt out of personalized response handling (CDN-cacheable)
+        expand:
+          type: string
+          required: false
+          description: |
+            Comma-separated. none, availability (deprecated), bundled_products, links,
+            promotions, options, images, prices, variations, set_products,
+            recommendations, shipping_methods, page_meta_tags, primary_category, slug.
+            All except page_meta_tags and slug apply when omitted.
+          example: "prices,promotions"
+        inventoryIds:
+          type: string
+          required: false
+          description: Comma-separated inventory list ids (max 5)
+        currency:
+          type: string
+          required: false
+          example: USD
         allImages:
           type: boolean
           required: false
+        imgTypes:
+          type: string
+          required: false
+          maxLength: 50
+          description: Requires expand=images. Format viewType:count,viewType:count
+          example: "large:3,small:1"
         perPricebook:
           type: boolean
           required: false
         select:
           type: string
           required: false
+          description: Property selector, e.g. (**)
+          example: "(**)"
       responses:
         200:
           body:
             application/json:
               type: object
               additionalProperties: true
+
+    /images:
+      description: Shopper Products V1 — product images
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: |
+          Get image groups for a single product. imgTypes filters view types
+          (default all, 200 per type). variationAttribute applies only when
+          allImages=true.
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: RefArch
+          locale:
+            type: string
+            required: false
+            example: en-US
+          personalized:
+            type: string
+            required: false
+            enum: [none]
+            description: Set to none to opt out of personalized response handling (CDN-cacheable)
+          imgTypes:
+            type: string
+            required: false
+            maxLength: 50
+            example: "large:3,small:1"
+          allImages:
+            type: boolean
+            required: false
+            default: false
+          variationAttribute:
+            type: string
+            required: false
+            description: "<attributeId>=<value>, comma-separated for several"
+            example: "color=red"
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    /prices:
+      description: Shopper Products V1 — product prices
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get price details (sales, tiered, per-pricebook) for a single product
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: RefArch
+          locale:
+            type: string
+            required: false
+            example: en-US
+          personalized:
+            type: string
+            required: false
+            enum: [none]
+            description: Set to none to opt out of personalized response handling (CDN-cacheable)
+          currency:
+            type: string
+            required: false
+            example: USD
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    /promotions:
+      description: Shopper Products V1 — product promotions
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get active promotions for a single product
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: RefArch
+          locale:
+            type: string
+            required: false
+            example: en-US
+          personalized:
+            type: string
+            required: false
+            enum: [none]
+            description: Set to none to opt out of personalized response handling (CDN-cacheable)
+          currency:
+            type: string
+            required: false
+            example: USD
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
 
 /product/shopper-products/v1/organizations/{orgId}/categories:
   description: Shopper Products V1 — category collection
@@ -1126,27 +1130,33 @@ uses:
       required: true
       example: f_ecom_bfgf_dev
   get:
-    description: Get multiple categories by id
+    description: |
+      Get multiple categories (max 50). Each id is treated as a category id
+      first, then as a URL-encoded slug. Required scope sfcc.shopper-categories.
     queryParameters:
       siteId:
         type: string
         required: true
-        example: homefragranceus
-      ids:
-        type: string
-        required: true
-        description: Comma-separated category ids
-        example: "root,candles"
-      levels:
-        type: integer
-        required: false
-        minimum: 0
-        maximum: 2
-        description: Number of subcategory levels to return
+        example: RefArch
       locale:
         type: string
         required: false
         example: en-US
+      personalized:
+        type: string
+        required: false
+        enum: [none]
+        description: Set to none to opt out of personalized response handling (CDN-cacheable)
+      ids:
+        type: string
+        required: true
+        description: Comma-separated category ids or slugs (max 50)
+        example: "electronics-digital-cameras,electronics-televisions"
+      levels:
+        type: integer
+        required: false
+        enum: [0, 1, 2]
+        description: Levels of nested online subcategories (default 1)
     responses:
       200:
         body:
@@ -1161,22 +1171,28 @@ uses:
       categoryId:
         type: string
         required: true
-        example: candles
+        description: Category id or URL-encoded slug
+        example: electronics
     get:
-      description: Get a single category
+      description: Get a single category (online or offline) with its subcategories
       queryParameters:
         siteId:
           type: string
           required: true
-          example: homefragranceus
-        levels:
-          type: integer
-          required: false
-          minimum: 0
-          maximum: 2
+          example: RefArch
         locale:
           type: string
           required: false
+          example: en-US
+        personalized:
+          type: string
+          required: false
+          enum: [none]
+          description: Set to none to opt out of personalized response handling (CDN-cacheable)
+        levels:
+          type: integer
+          required: false
+          enum: [0, 1, 2]
       responses:
         200:
           body:
