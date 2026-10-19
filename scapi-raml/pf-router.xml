@@ -326,29 +326,6 @@ payload.channel_id]"
     <!-- SHOPPER PRODUCTS V1                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products:sys-scapi-api-v1-config">
-        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
-    </flow>
-    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId):sys-scapi-api-v1-config">
-        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
-    </flow>
-    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories\(categoryId):sys-scapi-api-v1-config">
-        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
-    </flow>
-
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- SHOPPER SEARCH V1                                                   -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\product-search:sys-scapi-api-v1-config">
-        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
-    </flow>
-    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\search-suggestions:sys-scapi-api-v1-config">
-        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
-    </flow>
-
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- SHOPPER PRODUCTS V1                                                 -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products:sys-scapi-api-v1-config">
         <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
     </flow>
     <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId):sys-scapi-api-v1-config">
@@ -368,6 +345,16 @@ payload.channel_id]"
     </flow>
     <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories\(categoryId):sys-scapi-api-v1-config">
         <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER SEARCH V1                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\product-search:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\search-suggestions:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
     </flow>
 
 </mule>

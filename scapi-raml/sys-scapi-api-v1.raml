@@ -878,7 +878,6 @@ uses:
                 additionalProperties: true
 
 # ─────────────────────────────────────────────────────────────
-# ─────────────────────────────────────────────────────────────
 # SHOPPER PRODUCTS V1  (v1.13.0)
 # ─────────────────────────────────────────────────────────────
 /product/shopper-products/v1/organizations/{orgId}/products:
@@ -1199,3 +1198,60 @@ uses:
             application/json:
               type: object
               additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER SEARCH V1
+# ─────────────────────────────────────────────────────────────
+/search/shopper-search/v1/organizations/{orgId}/product-search:
+  description: Shopper Search V1 — product search
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Search products by keyword, category, refinements
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      q:
+        type: string
+        required: false
+        description: Search query string
+        example: "candle"
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+/search/shopper-search/v1/organizations/{orgId}/search-suggestions:
+  description: Shopper Search V1 — search suggestions
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Get typeahead search suggestions
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      q:
+        type: string
+        required: true
+        description: Search query string for suggestions
+        example: "cand"
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
