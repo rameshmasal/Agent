@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- ── Main listener ─────────────────────────────────────────────────── -->
+    <flow name="sys-sfcc-scapi-api-v1-main">
+        <http:listener config-ref="HTTP_Listener_config" path="/*" doc:name="HTTP Listener">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="sys-scapi-api-v1-config" doc:name="APIkit Router" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="400">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="404">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="405">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="406">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="415">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="501">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <!-- ── API Console ───────────────────────────────────────────────────── -->
+    <flow name="sys-sfcc-scapi-api-v1-console">
+        <http:listener config-ref="HTTP_Listener_config" path="/console/*" doc:name="Console Listener">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="sys-scapi-api-v1-config" doc:name="APIkit Console" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="404">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- AUTH                                                                -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\shopper\auth\v1\organizations\(orgId)\oauth2\token:application\x-www-form-urlencoded:sys-scapi-api-v1-config">
+        <set-variable
+            variableName="channel_id"
+            value="#[%dw 2.0
+output application/java
+---
+payload.channel_id]"
+            doc:name="Set channel_id" />
+        <flow-ref name="rf-token-flow" doc:name="rf-token-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- BASKETS — collection                                                -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+
+    <!-- POST /baskets/actions/transfer — no body, no content-type suffix -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\actions\transfer:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+
+    <!-- POST /baskets/actions/merge — no body, no content-type suffix -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\actions\merge:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- BASKETS — single basket                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="patch:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId):application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-patch-flow" doc:name="rf-checkout-patch-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CUSTOMER                                                            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="put:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\customer:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-put-flow" doc:name="rf-checkout-put-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- ITEMS                                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\items:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="patch:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\items\(itemId):application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-patch-flow" doc:name="rf-checkout-patch-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\items\(itemId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- BILLING ADDRESS                                                     -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="put:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\billing-address:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-put-flow" doc:name="rf-checkout-put-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- PAYMENT INSTRUMENTS                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\payment-instruments:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="patch:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\payment-instruments\(paymentInstrumentId):application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-patch-flow" doc:name="rf-checkout-patch-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\payment-instruments\(paymentInstrumentId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- PAYMENT METHODS                                                     -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\payment-methods:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- COUPONS                                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\coupons:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\coupons\(couponItemId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- GIFT CERTIFICATE ITEMS                                              -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\gift-certificate-items:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\gift-certificate-items\(giftCertificateItemId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- PRICE ADJUSTMENTS                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\price-adjustments:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\price-adjustments\(priceAdjustmentId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAXES                                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\taxes:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="put:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\taxes:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-put-flow" doc:name="rf-checkout-put-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHIPMENTS                                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\shipments:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="delete:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\shipments\(shipmentId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-delete-flow" doc:name="rf-checkout-delete-flow" />
+    </flow>
+    <flow name="put:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\shipments\(shipmentId)\shipping-address:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-put-flow" doc:name="rf-checkout-put-flow" />
+    </flow>
+    <flow name="put:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\shipments\(shipmentId)\shipping-method:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-put-flow" doc:name="rf-checkout-put-flow" />
+    </flow>
+    <flow name="get:\checkout\shopper-baskets\v2\organizations\(orgId)\baskets\(basketId)\shipments\(shipmentId)\shipping-methods:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER ORDERS                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\checkout\shopper-orders\v1\organizations\(orgId)\orders:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="get:\checkout\shopper-orders\v1\organizations\(orgId)\orders\(orderNo):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="patch:\checkout\shopper-orders\v1\organizations\(orgId)\orders\(orderNo):application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-patch-flow" doc:name="rf-checkout-patch-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER CUSTOMERS V1                                                -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="post:\customer\shopper-customers\v1\organizations\(orgId)\customers:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+    <flow name="get:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="patch:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId):application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-patch-flow" doc:name="rf-checkout-patch-flow" />
+    </flow>
+    <flow name="get:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId)\baskets:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId)\orders:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId)\addresses:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="post:\customer\shopper-customers\v1\organizations\(orgId)\customers\(customerId)\addresses:application\json:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-post-flow" doc:name="rf-checkout-post-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER PRODUCTS V1                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories\(categoryId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER SEARCH V1                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\product-search:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+    <flow name="get:\search\shopper-search\v1\organizations\(orgId)\search-suggestions:sys-scapi-api-v1-config">
+        <flow-ref name="rf-checkout-get-flow" doc:name="rf-checkout-get-flow" />
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SHOPPER PRODUCTS V1                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products:sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\products\(productId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories:sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+    <flow name="get:\product\shopper-products\v1\organizations\(orgId)\categories\(categoryId):sys-scapi-api-v1-config">
+        <flow-ref name="rf-product-get-flow" doc:name="rf-product-get-flow" />
+    </flow>
+
+</mule>
