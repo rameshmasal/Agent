@@ -1,6 +1,6 @@
 # prc-acorderstatus-api-v1
 
-Process API that returns the latest status of an order.
+Process API that returns the latest status of an order for a given brand.
 
 `GET /order/{orderId}?brand={brand}` looks the order up in the `ucp_order_latest_status` table through the System API for Postgres DB and returns it as JSON.
 
@@ -32,7 +32,7 @@ GET /order/{orderId}?brand={brand}
 | 200 | Order found. Body is the order as JSON. |
 | 400 | `brand` missing, or `orderId` or `brand` contains characters other than letters, digits, `-` and `_`. |
 | 401, 405, 406 | Standard APIkit and policy errors. |
-| 404 | No order with that id. |
+| 404 | No order with that id for the given brand. An order that exists under another brand also returns 404. |
 | 500 | Unexpected error, for example a database failure. |
 
 ### Example 200 response
@@ -40,8 +40,8 @@ GET /order/{orderId}?brand={brand}
 ```json
 {
   "orderId": "123435",
-  "brand": "Rubbermaid",
-  "siteId": "RubbermaidUS",
+  "brand": "graco",
+  "siteId": "gracobaby",
   "latestEventNumber": 12,
   "latestEventOccuredAt": "2026-10-08T10:45:00Z",
   "orderStatus": "SHIPPED",
@@ -75,18 +75,29 @@ GET /order/{orderId}?brand={brand}
 4. `sf-splunk-info` (success) and `sf-splunk-error` (failure) log to Splunk asynchronously.
    Splunk gets the order id, status, brand and site id. The order snapshot is not logged.
 
+## Database access
+
+The API does not connect to Postgres directly. It uses the `System API for Postgres DB` connector
+(`mule-plugin-sys-postgresdb-api` 1.0.18), configured the same way as `prc-accheckout-api`:
+
+- `cf-global.xml` defines `System_API_for_Postgres_DB_Config` from the `sys-postgresdb-api.*` properties.
+- `rf-orderstatus-get.xml` calls `select-rows-from-a-specified-schema-and-table` with the schema and table
+  from `prc-orderstatus-api.database.*`, and the client id and secret from `postgres-api.*`.
+- The filter is built as text, so `orderId` and `brand` are checked first. Only letters, digits, `-` and `_`
+  (1 to 64 characters) are accepted, otherwise the API returns 400.
+- `brand` is compared as sent, with no case change. It must match the value stored in the `brand` column.
+
 ## Project layout
 
 ```
 src/main/mule/
   cf-global.xml            Listener, APIkit, System API for Postgres DB and secure property configs
   pf-router.xml            Main flow, console flow and the GET dispatcher
-  rf-orderstatus-get.xml     Request flow plus Splunk sub-flows
+  rf-orderstatus-get.xml   Request flow plus Splunk sub-flows
 src/main/resources/
   api/prc-acorderstatus-api.raml
-  transformation/          order-status-response, order-not-found, error-response (.dwl)
+  transformation/          order-status-response, order-not-found, bad-request-response, error-response (.dwl)
   properties/              {env}.yaml and {env}-secure.yaml for local, dev, qa, uat, prd
-src/test/munit/            MUnit suite (200 and 404)
 ```
 
 ## Configuration
@@ -101,13 +112,12 @@ The `uat` and `prd` `postgres-api` credentials are `ENCRYPTED_PLACEHOLDER` (as i
 | `prc-orderstatus-api.http-listener.port` | `{env}.yaml` | Listener port (8081) |
 | `prc-orderstatus-api.http-listener.autodiscovery-id` | `{env}.yaml` | API Manager id (`0` until registered) |
 
-Runtime properties: `env` (for example `qa`) and `masterKey`.
+Runtime properties: `env` (for example `qa`) and `masterKey`. The `masterKey` must be the key the `postgres-api` values were encrypted with (the same one `prc-accheckout-api` uses).
 
 ## Build and run
 
 ```bash
 mvn clean package -Denv=local -DmasterKey=<key>
-mvn test -Denv=local -DmasterKey=<key>
 ```
 
 Call it locally:
