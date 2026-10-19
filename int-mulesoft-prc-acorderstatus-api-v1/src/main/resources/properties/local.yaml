@@ -1,0 +1,20 @@
+#Order status API
+prc-orderstatus-api:
+  database:
+    schema-name: "mulesoft_dt"
+    table-name: "ucp_order_latest_status"
+  http-listener:
+    port: "8081"
+    path: "/*"
+    # TODO: replace with the API Manager id before deploying
+    autodiscovery-id: "0"
+
+#Postgres System API configuration (copied from prc-accheckout-api)
+sys-postgresdb-api:
+  host: "qa.apis.newellbrands.com"
+  port: "443"
+  protocol: "HTTPS"
+  basepath: "/q/sys/postgresdb/hflocal"
+  retry-count: "3"
+  retry-time-in-milli-sec: "60000"
+  responsetimeoutmillis: "120000"

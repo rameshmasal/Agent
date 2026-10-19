@@ -1,0 +1,58 @@
+name: Mulesoft API
+
+### Controls when the workflow will run
+on:
+  push:
+    branches: [ "develop","uat","svt","prd" ]
+
+### Sizing config for all environments. Branch determines the env; the ONLY way
+### to change vcore/workers/cloudhubVersion for an env is to edit "overrides" below.
+### An env with no override (or missing a field) falls back to "defaults".
+env:
+  SIZING_CONFIG: |
+    {
+      "defaults": { "vcores": "mule.medium", "workers": 1, "cloudhubVersion": 2 },
+      "overrides": {
+        "qa":  { "vcores": "mule.small", "workers": 1 },
+        "uat":  { "vcores": "mule.medium", "workers": 1 },
+        "svt":  { "vcores": "mule.medium", "workers": 1 },
+        "prd": { "vcores": "mule.large", "workers": 1 }
+      }
+    }
+
+jobs:
+  resolve-config:
+    runs-on: ubuntu-latest
+    outputs:
+      cloud_ver: ${{ steps.resolve.outputs.cloud_ver }}
+      worker: ${{ steps.resolve.outputs.worker }}
+      vcore: ${{ steps.resolve.outputs.vcore }}
+    steps:
+      - name: Resolve cloud_ver/worker/vcore from defaults + overrides
+        id: resolve
+        run: |
+           branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+           case "$branch" in
+             develop) env=qa ;;
+             uat)     env=uat ;;
+             svt)     env=svt ;;
+             prd)     env=prd ;;
+             *)       env=none ;;
+           esac
+
+           cloud_ver=$(echo "$SIZING_CONFIG" | jq -r --arg env "$env" '.overrides[$env].cloudhubVersion // .defaults.cloudhubVersion')
+           vcore=$(echo "$SIZING_CONFIG" | jq -r --arg env "$env" '.overrides[$env].vcores // .defaults.vcores')
+           worker=$(echo "$SIZING_CONFIG" | jq -r --arg env "$env" '.overrides[$env].workers // .defaults.workers')
+
+           echo "cloud_ver=$cloud_ver" >> $GITHUB_OUTPUT
+           echo "vcore=$vcore" >> $GITHUB_OUTPUT
+           echo "worker=$worker" >> $GITHUB_OUTPUT
+
+  int-mulesoft-api:
+    needs: resolve-config
+    uses: NewellBrands-Integration/common-reusable-workflows/.github/workflows/mulesoft-build-deploy.yml@main
+    with:
+      cloud_ver: ${{ needs.resolve-config.outputs.cloud_ver }}
+      worker: ${{ needs.resolve-config.outputs.worker }}
+      vcore: ${{ needs.resolve-config.outputs.vcore }}
+    secrets: inherit

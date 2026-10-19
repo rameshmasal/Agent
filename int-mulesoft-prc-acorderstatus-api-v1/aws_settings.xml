@@ -1,0 +1,132 @@
+
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <servers>
+    <server>
+      <id>nexus</id>
+      <username>old_service</username>
+      <password>SERVICE_PWD</password>
+    </server>
+    <server>
+      <id>MuleRepository</id>
+      <username>newell.nexus</username>
+      <password>NEXUSNEWELL_PWD</password>
+    </server>
+    <server>
+       <id>anypoint-exchange-v2</id>
+       <username>nwl_ops</username>
+       <password>ANYPOINT_PWD</password>
+    </server>
+    <server>
+      <id>nexus-mule_nexus</id>
+      <username>aws</username>
+      <password>${env.CODEARTIFACT_AUTH_TOKEN}</password>
+    </server>
+  </servers>
+  <mirrors>
+    <!--    <mirror>
+
+
+
+      <id>nexus</id>
+
+      <mirrorOf>*</mirrorOf>
+
+      <url>http://api-nexus-dev.nrecommerce.com:8081/repository/api-dev/</url>
+
+    </mirror>  -->
+
+    <mirror>
+    	<id>maven-default-http-blocker</id>
+    	<mirrorOf>external:http:*</mirrorOf>
+    	<name>Pseudo repository to mirror external repositories initially using HTTP.</name>
+    	<url>https://nexus-306502519617.d.codeartifact.us-east-1.amazonaws.com/maven/mule_api_dev/</url>
+    	<blocked>false</blocked>
+    </mirror>
+  </mirrors>
+  <profiles>
+    <profile>
+      <id>nexus-mule_nexus</id>
+      <!--Enable snapshots for the built in central repo to direct -->
+      <!-- all requests to nexus via the mirror -->
+
+      <properties>
+        <altSnapshotDeploymentRepository>nexus-mule_nexus::default::https://nexus-306502519617.d.codeartifact.us-east-1.amazonaws.com/maven/mule_nexus/</altSnapshotDeploymentRepository>
+        <altReleaseDeploymentRepository>nexus-mule_nexus::default::https://nexus-306502519617.d.codeartifact.us-east-1.amazonaws.com/maven/mule_nexus/</altReleaseDeploymentRepository>
+      </properties>
+      <repositories>
+
+        <repository>
+          <id>nexus-mule_nexus</id>
+          <url>https://nexus-306502519617.d.codeartifact.us-east-1.amazonaws.com/maven/mule_api_dev/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </repository>
+
+        <repository>
+          <id>MuleRepository</id>
+          <name>MuleRepository</name>
+          <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee</url>
+          <layout>default</layout>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </repository>
+        <repository>
+          <id>anypoint-exchange-v2</id>
+          <name>Anypoint Exchange</name>
+          <url>https://maven.anypoint.mulesoft.com/api/v2/maven</url>
+          <layout>default</layout>
+        </repository>
+        <repository>
+          <id>mulesoft-releases</id>
+          <name>MuleSoft Releases Repository</name>
+          <url>https://repository.mulesoft.org/releases/</url>
+          <layout>default</layout>
+        </repository>
+        <repository>
+          <id>org-anypoint-exchange</id>
+          <name>Org Anypoint Exchange</name>
+          <url>https://maven.anypoint.mulesoft.com/api/v1/organizations/${project.groupId}/maven</url>
+          <layout>default</layout>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <url>https://repo1.maven.org/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>mulesoft-releases</id>
+          <name>mulesoft release repository</name>
+          <layout>default</layout>
+          <url>https://repository.mulesoft.org/releases/</url>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <!--make the profile active all the time -->
+    <activeProfile>nexus-mule_nexus</activeProfile>
+    <activeProfile>MuleRepository</activeProfile>
+  </activeProfiles>
+</settings>

@@ -1,0 +1,4 @@
+#Postgres System API credentials (copied from prc-accheckout-api)
+postgres-api:
+  client-id: "![ENCRYPTED_PLACEHOLDER]"
+  client-secret: "![ENCRYPTED_PLACEHOLDER]"
