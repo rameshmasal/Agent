@@ -1,0 +1,1185 @@
+#%RAML 1.0
+title: SFCC SCAPI System API
+version: v1
+baseUri: https://kv7kzm78.api.commercecloud.salesforce.com
+mediaType: application/json
+protocols: [HTTPS]
+description: |
+  Generic SCAPI proxy with built-in token management.
+  Forwards any Shopper API call to the SCAPI backend after injecting
+  a valid per-siteId Bearer token. The Process API owns resource path
+  construction, request bodies, and UCP error mapping.
+
+uses:
+  lib: /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — SLAS token generation
+# ─────────────────────────────────────────────────────────────
+/shopper/auth/v1/organizations/{orgId}/oauth2/token:
+  description: SLAS token generation endpoint
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      description: SFCC organisation ID
+      example: f_ecom_bfgf_dev
+  post:
+    description: Generate SLAS access token using Basic auth per channel_id
+    body:
+      application/x-www-form-urlencoded:
+        type: object
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER BASKETS V2
+# ─────────────────────────────────────────────────────────────
+/checkout/shopper-baskets/v2/organizations/{orgId}/baskets:
+  description: Shopper Baskets V2 — basket collection
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+
+  post:
+    description: Create a new basket
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+    body:
+      application/json:
+        type: object
+        additionalProperties: true
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  # ── Actions ────────────────────────────────────────────
+  /actions:
+    description: Shopper Baskets V2 — basket actions (merge / transfer)
+    is: [lib.trackable, lib.client-credentials]
+
+    /transfer:
+      description: |
+        Transfer previous shopper basket to current shopper.
+        Use merge=true (recommended) to invoke the dw.order.mergeBasket
+        hook for graceful handling. No request body required.
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: |
+          Transfer the previous shopper basket to the current shopper.
+          merge=true (recommended) — triggers dw.order.mergeBasket hook.
+          merge=false — plain transfer, may return 409 if current shopper
+          has active basket (use overrideExisting=true to force).
+          No request body required.
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+          merge:
+            type: boolean
+            required: false
+            description: |
+              true (recommended) — triggers merge hook for graceful handling.
+              false (default) — plain transfer.
+            example: true
+          overrideExisting:
+            type: boolean
+            required: false
+            description: |
+              true — force transfer, deletes current shopper active basket.
+              false (default) — returns 409 if current shopper has basket.
+            example: false
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+          204:
+            description: No content — neither shopper had an active basket
+          409:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    /merge:
+      description: |
+        DEPRECATED — use /actions/transfer?merge=true instead.
+        Merge previous shopper basket into current shopper active basket.
+        No request body required.
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: |
+          (DEPRECATED) Merge previous shopper basket into current shopper
+          active basket and delete the previous shopper basket.
+          Use /actions/transfer?merge=true instead.
+          No request body required.
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+          createDestinationBasket:
+            type: boolean
+            required: false
+            description: |
+              true — force merge, creates new basket for current shopper.
+              false (default) — returns 409 if current shopper has no basket.
+            example: false
+          productItemMergeMode:
+            type: string
+            required: false
+            description: |
+              Controls quantity calculation for products in both baskets.
+              higher_quantity (default) | sum_quantities |
+              saved_quantity | separate_item
+            enum: [higher_quantity, sum_quantities, saved_quantity, separate_item]
+            example: higher_quantity
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+          409:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+  /{basketId}:
+    description: Shopper Baskets V2 — single basket
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      basketId:
+        type: string
+        required: true
+        example: 02878a6e3bb15b789fbd4670c4
+
+    get:
+      description: Retrieve an existing basket
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+    patch:
+      description: Update basket custom attributes or source code
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      body:
+        application/json:
+          type: object
+          additionalProperties: true
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+    delete:
+      description: Delete a basket
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      responses:
+        204:
+          description: Basket deleted — no content
+
+    # ── Customer ───────────────────────────────────────────
+    /customer:
+      description: Shopper Baskets V2 — basket customer
+      is: [lib.trackable, lib.client-credentials]
+      put:
+        description: Set customer info on basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    # ── Items ──────────────────────────────────────────────
+    /items:
+      description: Shopper Baskets V2 — basket items
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Add items to an existing basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+            example:
+              - productId: "SAP_1585173"
+                quantity: 1
+                shipmentId: "me"
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{itemId}:
+        description: Shopper Baskets V2 — single basket item
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          itemId:
+            type: string
+            required: true
+            example: abc123itemId
+        patch:
+          description: Update quantity or attributes of a basket item
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+        delete:
+          description: Remove an item from the basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+    # ── Billing address ────────────────────────────────────
+    /billing-address:
+      description: Shopper Baskets V2 — billing address
+      is: [lib.trackable, lib.client-credentials]
+      put:
+        description: Set billing address on basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    # ── Payment instruments ────────────────────────────────
+    /payment-instruments:
+      description: Shopper Baskets V2 — payment instruments
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Add a payment instrument to basket (GPay token)
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{paymentInstrumentId}:
+        description: Shopper Baskets V2 — single payment instrument
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          paymentInstrumentId:
+            type: string
+            required: true
+            example: abc123paymentId
+        patch:
+          description: Update a payment instrument on basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+        delete:
+          description: Remove a payment instrument from basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+    # ── Payment methods ────────────────────────────────────
+    /payment-methods:
+      description: Shopper Baskets V2 — payment methods
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get applicable payment methods for basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    # ── Coupons ────────────────────────────────────────────
+    /coupons:
+      description: Shopper Baskets V2 — coupons
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Apply a coupon to the basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{couponItemId}:
+        description: Shopper Baskets V2 — single coupon
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          couponItemId:
+            type: string
+            required: true
+            example: abc123couponId
+        delete:
+          description: Remove a coupon from the basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+    # ── Gift certificate items ─────────────────────────────
+    /gift-certificate-items:
+      description: Shopper Baskets V2 — gift certificate items
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Add a gift certificate item to the basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{giftCertificateItemId}:
+        description: Shopper Baskets V2 — single gift certificate item
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          giftCertificateItemId:
+            type: string
+            required: true
+            example: abc123gcItemId
+        delete:
+          description: Remove a gift certificate item from basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+    # ── Price adjustments ──────────────────────────────────
+    /price-adjustments:
+      description: Shopper Baskets V2 — price adjustments
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Add a price adjustment to the basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{priceAdjustmentId}:
+        description: Shopper Baskets V2 — single price adjustment
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          priceAdjustmentId:
+            type: string
+            required: true
+            example: abc123priceAdjId
+        delete:
+          description: Remove a price adjustment from basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+    # ── Taxes ──────────────────────────────────────────────
+    /taxes:
+      description: Shopper Baskets V2 — external taxation
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get external taxation data for basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+      put:
+        description: Apply external taxation data to all basket line items
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    # ── Shipments ──────────────────────────────────────────
+    /shipments:
+      description: Shopper Baskets V2 — shipments
+      is: [lib.trackable, lib.client-credentials]
+      post:
+        description: Create a shipment for the basket
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+      /{shipmentId}:
+        description: Shopper Baskets V2 — single shipment
+        is: [lib.trackable, lib.client-credentials]
+        uriParameters:
+          shipmentId:
+            type: string
+            required: true
+            example: me
+
+        delete:
+          description: Delete a shipment from the basket
+          queryParameters:
+            siteId:
+              type: string
+              required: true
+              example: homefragranceus
+          responses:
+            200:
+              body:
+                application/json:
+                  type: object
+                  additionalProperties: true
+
+        /shipping-address:
+          description: Shopper Baskets V2 — shipment shipping address
+          is: [lib.trackable, lib.client-credentials]
+          put:
+            description: Set shipping address on a shipment
+            queryParameters:
+              siteId:
+                type: string
+                required: true
+                example: homefragranceus
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+            responses:
+              200:
+                body:
+                  application/json:
+                    type: object
+                    additionalProperties: true
+
+        /shipping-method:
+          description: Shopper Baskets V2 — shipment shipping method
+          is: [lib.trackable, lib.client-credentials]
+          put:
+            description: Set shipping method on a shipment
+            queryParameters:
+              siteId:
+                type: string
+                required: true
+                example: homefragranceus
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+            responses:
+              200:
+                body:
+                  application/json:
+                    type: object
+                    additionalProperties: true
+
+        /shipping-methods:
+          description: Shopper Baskets V2 — available shipping methods
+          is: [lib.trackable, lib.client-credentials]
+          get:
+            description: Get applicable shipping methods for a shipment
+            queryParameters:
+              siteId:
+                type: string
+                required: true
+                example: homefragranceus
+            responses:
+              200:
+                body:
+                  application/json:
+                    type: object
+                    additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER ORDERS V1
+# ─────────────────────────────────────────────────────────────
+/checkout/shopper-orders/v1/organizations/{orgId}/orders:
+  description: Shopper Orders V1 — order placement
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+
+  post:
+    description: |
+      Place order from basket. Triggers SFCC-2 afterPOST hook which
+      authorizes payment via Cybersource SOAP and places or fails the order.
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+    body:
+      application/json:
+        type: object
+        additionalProperties: true
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  /{orderNo}:
+    description: Shopper Orders V1 — single order
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      orderNo:
+        type: string
+        required: true
+        example: "00000101"
+    get:
+      description: Retrieve a placed order by order number
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+    patch:
+      description: Update an order (guest email, status)
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      body:
+        application/json:
+          type: object
+          additionalProperties: true
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER CUSTOMERS V1
+# ─────────────────────────────────────────────────────────────
+/customer/shopper-customers/v1/organizations/{orgId}/customers:
+  description: Shopper Customers V1 — customer registration
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  post:
+    description: Register a new customer
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+    body:
+      application/json:
+        type: object
+        additionalProperties: true
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  /{customerId}:
+    description: Shopper Customers V1 — single customer
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      customerId:
+        type: string
+        required: true
+        example: abc123customerId
+    get:
+      description: Get customer profile
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+    patch:
+      description: Update customer profile
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      body:
+        application/json:
+          type: object
+          additionalProperties: true
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+    /baskets:
+      description: Shopper Customers V1 — customer baskets
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get open baskets for a customer
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    /orders:
+      description: Shopper Customers V1 — customer order history
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get order history for a customer
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+    /addresses:
+      description: Shopper Customers V1 — customer addresses
+      is: [lib.trackable, lib.client-credentials]
+      get:
+        description: Get saved addresses for a customer
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+      post:
+        description: Add a new address for a customer
+        queryParameters:
+          siteId:
+            type: string
+            required: true
+            example: homefragranceus
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+        responses:
+          200:
+            body:
+              application/json:
+                type: object
+                additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER PRODUCTS V1
+# ─────────────────────────────────────────────────────────────
+/product/shopper-products/v1/organizations/{orgId}/products:
+  description: Shopper Products V1 — product batch lookup
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Get multiple products by IDs (batch lookup up to 24)
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      ids:
+        type: string
+        required: true
+        description: Comma-separated product IDs
+        example: "SAP_1585173,SAP_1585174"
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  /{productId}:
+    description: Shopper Products V1 — single product
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      productId:
+        type: string
+        required: true
+        example: SAP_1585173
+    get:
+      description: Get product detail by product ID
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+/product/shopper-products/v1/organizations/{orgId}/categories/{categoryId}:
+  description: Shopper Products V1 — category detail
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+    categoryId:
+      type: string
+      required: true
+      example: mens-clothing
+  get:
+    description: Get category detail and sub-categories
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER SEARCH V1
+# ─────────────────────────────────────────────────────────────
+/search/shopper-search/v1/organizations/{orgId}/product-search:
+  description: Shopper Search V1 — product search
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Search products by keyword, category, refinements
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      q:
+        type: string
+        required: false
+        description: Search query string
+        example: "candle"
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+/search/shopper-search/v1/organizations/{orgId}/search-suggestions:
+  description: Shopper Search V1 — search suggestions
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Get typeahead search suggestions
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      q:
+        type: string
+        required: true
+        description: Search query string for suggestions
+        example: "cand"
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+# ─────────────────────────────────────────────────────────────
+# SHOPPER PRODUCTS V1
+# ─────────────────────────────────────────────────────────────
+/product/shopper-products/v1/organizations/{orgId}/products:
+  description: Shopper Products V1 — product collection
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: |
+      Get multiple products by id (maximum 24 ids per request).
+      Use expand to include images, prices, promotions, variations, etc.
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      ids:
+        type: string
+        required: true
+        description: Comma-separated product ids (max 24)
+        example: "25518447M,25518704M"
+      expand:
+        type: string
+        required: false
+        description: |
+          Comma-separated list, e.g. availability, bundled_products, links,
+          promotions, options, images, prices, variations, set_products,
+          recommendations
+        example: "images,prices,promotions"
+      inventoryIds:
+        type: string
+        required: false
+      currency:
+        type: string
+        required: false
+        example: USD
+      locale:
+        type: string
+        required: false
+        example: en-US
+      allImages:
+        type: boolean
+        required: false
+      perPricebook:
+        type: boolean
+        required: false
+      select:
+        type: string
+        required: false
+        description: Selector to limit the response fields
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  /{productId}:
+    description: Shopper Products V1 — single product
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      productId:
+        type: string
+        required: true
+        example: 25518447M
+    get:
+      description: Get a single product (details, variants, images, prices, promotions)
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+        expand:
+          type: string
+          required: false
+          example: "images,prices,promotions,variations"
+        inventoryIds:
+          type: string
+          required: false
+        currency:
+          type: string
+          required: false
+        locale:
+          type: string
+          required: false
+        allImages:
+          type: boolean
+          required: false
+        perPricebook:
+          type: boolean
+          required: false
+        select:
+          type: string
+          required: false
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
+
+/product/shopper-products/v1/organizations/{orgId}/categories:
+  description: Shopper Products V1 — category collection
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    orgId:
+      type: string
+      required: true
+      example: f_ecom_bfgf_dev
+  get:
+    description: Get multiple categories by id
+    queryParameters:
+      siteId:
+        type: string
+        required: true
+        example: homefragranceus
+      ids:
+        type: string
+        required: true
+        description: Comma-separated category ids
+        example: "root,candles"
+      levels:
+        type: integer
+        required: false
+        minimum: 0
+        maximum: 2
+        description: Number of subcategory levels to return
+      locale:
+        type: string
+        required: false
+        example: en-US
+    responses:
+      200:
+        body:
+          application/json:
+            type: object
+            additionalProperties: true
+
+  /{categoryId}:
+    description: Shopper Products V1 — single category
+    is: [lib.trackable, lib.client-credentials]
+    uriParameters:
+      categoryId:
+        type: string
+        required: true
+        example: candles
+    get:
+      description: Get a single category
+      queryParameters:
+        siteId:
+          type: string
+          required: true
+          example: homefragranceus
+        levels:
+          type: integer
+          required: false
+          minimum: 0
+          maximum: 2
+        locale:
+          type: string
+          required: false
+      responses:
+        200:
+          body:
+            application/json:
+              type: object
+              additionalProperties: true
