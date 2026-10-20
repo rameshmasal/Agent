@@ -35,7 +35,7 @@ types:
   get:
     description: Fetches the order of the given brand from the database and returns it as JSON
     headers:
-      X-Brand:
+      brand:
         type: string
         required: true
         description: Brand the order belongs to, for example graco or yankeecandle. Only an order of this brand is returned.
