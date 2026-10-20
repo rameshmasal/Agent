@@ -7,15 +7,14 @@ prc-orderstatus-api:
     port: "8081"
     path: "/*"
     # TODO: replace with the API Manager id before deploying
-    autodiscovery-id: "21230103"
-
-#Postgres System API configuration (copied from prc-accheckout-api)
+    autodiscovery-id: "21243238"
+    
+    #Postgres System API configuration
 sys-postgresdb-api:
   host: "qa.apis.newellbrands.com"
   port: "443"
   protocol: "HTTPS"
   basepath: "/q/sys/postgresdb/hf"
-  aptos-db: "fulfillment_s"
   retry-count: "3"
   retry-time-in-milli-sec: "60000"  
   responsetimeoutmillis: "120000"

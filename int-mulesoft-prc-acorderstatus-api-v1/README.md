@@ -2,7 +2,7 @@
 
 Process API that returns the latest status of an order for a given brand.
 
-`GET /order/{orderId}?brand={brand}` looks the order up in the `ucp_order_latest_status` table through the System API for Postgres DB and returns it as JSON.
+`GET /order/{orderId}` with an `X-Brand` header looks the order up in the `ucp_order_latest_status` table through the System API for Postgres DB and returns it as JSON.
 
 ## Overview
 
@@ -17,20 +17,21 @@ Process API that returns the latest status of an order for a given brand.
 ## Endpoint
 
 ```
-GET /order/{orderId}?brand={brand}
+GET /order/{orderId}
+X-Brand: {brand}
 ```
 
 | Parameter | In | Required | Description |
 |---|---|---|---|
 | `orderId` | URI | Yes | Order id, for example `123435` |
-| `brand` | Query | Yes | Brand of the order, for example `graco`. An order of another brand is answered as 404. |
+| `X-Brand` | Header | Yes | Brand of the order, for example `graco`. An order of another brand is answered as 404. |
 
 ### Responses
 
 | Status | Meaning |
 |---|---|
 | 200 | Order found. Body is the order as JSON. |
-| 400 | `brand` missing, or `orderId` or `brand` contains characters other than letters, digits, `-` and `_`. |
+| 400 | `X-Brand` header missing, or `orderId` or the brand contains characters other than letters, digits, `-` and `_`. |
 | 401, 405, 406 | Standard APIkit and policy errors. |
 | 404 | No order with that id for the given brand. An order that exists under another brand also returns 404. |
 | 500 | Unexpected error, for example a database failure. |
@@ -67,7 +68,7 @@ GET /order/{orderId}?brand={brand}
 
 ## How it works
 
-1. `pf-router` (APIkit) matches `GET /order/{orderId}` and saves `orderId` and the `brand` query parameter to variables.
+1. `pf-router` (APIkit) matches `GET /order/{orderId}` and saves `orderId` and the `X-Brand` header to variables.
 2. `rf-orderstatus-get` validates both values, then calls the System API select operation with the filter
    `and=(order_id.eq.'<orderId>',brand.eq.'<brand>')` on `mulesoft_dt.ucp_order_latest_status`.
    A `NOT_FOUND` error from the System API is treated as no rows.
@@ -123,7 +124,7 @@ mvn clean package -Denv=local -DmasterKey=<key>
 Call it locally:
 
 ```bash
-curl 'http://localhost:8081/order/123435?brand=graco'
+curl -H 'X-Brand: graco' 'http://localhost:8081/order/123435'
 ```
 
 ## Deployment

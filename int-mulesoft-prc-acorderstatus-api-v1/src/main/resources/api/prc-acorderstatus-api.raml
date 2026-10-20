@@ -34,8 +34,8 @@ types:
   is: [lib.trackable,lib.returns-400,lib.returns-401,lib.returns-404,lib.returns-405,lib.returns-406,lib.returns-500,lib.returns-501,lib.client-credentials]
   get:
     description: Fetches the order of the given brand from the database and returns it as JSON
-    queryParameters:
-      brand:
+    headers:
+      X-Brand:
         type: string
         required: true
         description: Brand the order belongs to, for example graco or yankeecandle. Only an order of this brand is returned.

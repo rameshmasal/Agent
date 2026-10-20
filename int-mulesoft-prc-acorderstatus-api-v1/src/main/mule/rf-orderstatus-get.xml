@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 				config-ref="System_API_for_Postgres_DB_Config"
 				schema-name='#[p("prc-orderstatus-api.database.schema-name")]'
 				table-name='#[p("prc-orderstatus-api.database.table-name")]'
-				filter='#["and=(order_id.eq.&apos;" ++ vars.orderId ++ "&apos;,brand.eq.&apos;" ++ vars.brand ++ "&apos;)"]'
+				filter="#[&quot;order_id.eq.'&quot; ++ vars.orderId ++ &quot;',,brand.eq.'&quot; ++ vars.brand ++ &quot;'&quot;]"
 				client-id='#[p("secure::postgres-api.client-id")]'
 				client-secret='#[p("secure::postgres-api.client-secret")]' />
 			<error-handler>

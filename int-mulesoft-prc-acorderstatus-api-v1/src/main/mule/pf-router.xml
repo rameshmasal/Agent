@@ -121,7 +121,7 @@ output application/json
     </flow>
     <flow name="get:\order\(orderId):prc-acorderstatus-api-config">
         <set-variable value="#[attributes.uriParams.orderId]" doc:name="set orderId" variableName="orderId" />
-        <set-variable value="#[attributes.queryParams.brand]" doc:name="set brand" variableName="brand" />
+        <set-variable value="#[attributes.headers.'x-brand']" doc:name="set brand" variableName="brand" />
         <flow-ref doc:name="rf-orderstatus-get" name="rf-orderstatus-get" />
     </flow>
 </mule>
