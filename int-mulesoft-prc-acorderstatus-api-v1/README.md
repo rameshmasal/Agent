@@ -2,7 +2,7 @@
 
 Process API that returns the latest status of an order for a given brand.
 
-`GET /order/{orderId}` with an `brand` header looks the order up in the `ucp_order_latest_status` table through the System API for Postgres DB and returns it as JSON.
+`GET /order/{orderId}` with a `brand` header looks the order up in the `ucp_order_latest_status` table through the System API for Postgres DB and returns it as JSON.
 
 ## Overview
 
@@ -70,7 +70,7 @@ brand: {brand}
 
 1. `pf-router` (APIkit) matches `GET /order/{orderId}` and saves `orderId` and the `brand` header to variables.
 2. `rf-orderstatus-get` validates both values, then calls the System API select operation with the filter
-   `and=(order_id.eq.'<orderId>',brand.eq.'<brand>')` on `mulesoft_dt.ucp_order_latest_status`.
+   `order_id.eq.'<orderId>',,brand.eq.'<brand>'` on `mulesoft_dt.ucp_order_latest_status`.
    A `NOT_FOUND` error from the System API is treated as no rows.
 3. No row (unknown id, or an order of another brand): returns 404. Row found: `order-status-response.dwl` converts it to JSON.
 4. `sf-splunk-info` (success) and `sf-splunk-error` (failure) log to Splunk asynchronously.
