@@ -3,6 +3,11 @@ output application/json
 var exp      = payload.export
 var salesorg = exp.EX_API_SALESORG default {}
 var salesorgs = payload.tables.ET_SALESORG default []
+var filterVkorg = vars.params.salesOrg default ""
+var filterVtweg = vars.params.distributionChannel default ""
+var filteredSalesOrgs = salesorgs filter (row) ->
+  (isEmpty(filterVkorg) or row.VKORG == filterVkorg) and
+  (isEmpty(filterVtweg) or row.VTWEG == filterVtweg)
 ---
 {
   productId        : exp.EV_MATNR,
@@ -11,7 +16,7 @@ var salesorgs = payload.tables.ET_SALESORG default []
   productType      : exp.EV_MTART,
   division         : exp.EV_SPART,
 
-  salesOrg: salesorgs map (row) -> {
+  salesOrg: filteredSalesOrgs map (row) -> {
     productId             : row.MATNR,
     salesOrgId            : row.VKORG,
     salesOrgDesc          : row.VKORGD,
