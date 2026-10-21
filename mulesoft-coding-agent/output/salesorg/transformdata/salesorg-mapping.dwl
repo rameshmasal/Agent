@@ -3,7 +3,6 @@ output application/json
 var exp      = payload.export
 var salesorg = exp.EX_API_SALESORG default {}
 var salesorgs = payload.tables.ET_SALESORG default []
-var taxList   = payload.tables.ET_TAX default []
 ---
 {
   productId        : exp.EV_MATNR,
@@ -87,7 +86,7 @@ var taxList   = payload.tables.ET_TAX default []
       productAttribute10: salesorg.PRATA
     },
 
-    taxClassifications: taxList map (row) -> {
+    taxClassifications: (salesorg.TAXCLASS default []) map (row) -> {
       countryId            : row.ALAND,
       countryDesc          : row.ALANDD,
       taxCategoryId        : row.TATYP,
@@ -97,14 +96,14 @@ var taxList   = payload.tables.ET_TAX default []
     },
 
     salesPlantData: {
-      plantId                : salesorg.WERKS,
-      plantDesc              : salesorg.WERKSD,
-      availabilityCheckId    : salesorg.MTVFP,
-      availabilityCheckDesc  : salesorg.MTVFPD,
-      transportationGroupId  : salesorg.TRAGR,
-      transportationGroupDesc: salesorg.TRAGRD,
-      loadingGroupId         : salesorg.LADGR,
-      loadingGroupDesc       : salesorg.LADGRD
+      plantId                : salesorg.SALESPLANT.WERKS,
+      plantDesc              : salesorg.SALESPLANT.WERKSD,
+      availabilityCheckId    : salesorg.SALESPLANT.MTVFP,
+      availabilityCheckDesc  : salesorg.SALESPLANT.MTVFPD,
+      transportationGroupId  : salesorg.SALESPLANT.TRAGR,
+      transportationGroupDesc: salesorg.SALESPLANT.TRAGRD,
+      loadingGroupId         : salesorg.SALESPLANT.LADGR,
+      loadingGroupDesc       : salesorg.SALESPLANT.LADGRD
     },
 
     customField: {

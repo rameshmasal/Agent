@@ -53,11 +53,104 @@ vars.params.productId default ""]]></ee:set-variable>
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
+var sapExport   = vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.export
+var sapSalesOrg = sapExport.EX_API_SALESORG
 ---
 {
   export: {
-    (vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.export -- ["EX_API_SALESORG"]),
-    EX_API_SALESORG: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.export.EX_API_SALESORG
+    EV_ERSDA: sapExport.EV_ERSDA,
+    EV_LAEDA: sapExport.EV_LAEDA,
+    EV_MAKTX: sapExport.EV_MAKTX,
+    EV_MATNR: sapExport.EV_MATNR,
+    EV_MSTAE: sapExport.EV_MSTAE,
+    EV_MTART: sapExport.EV_MTART,
+    EV_SPART: sapExport.EV_SPART,
+    EX_API_SALESORG: {
+      MATNR : sapSalesOrg.MATNR,
+      VKORG : sapSalesOrg.VKORG,
+      VKORGD: sapSalesOrg.VKORGD,
+      VTWEG : sapSalesOrg.VTWEG,
+      VTWEGD: sapSalesOrg.VTWEGD,
+      VRKME : sapSalesOrg.VRKME,
+      VRKMED: sapSalesOrg.VRKMED,
+      MEGRU : sapSalesOrg.MEGRU,
+      MEGRUD: sapSalesOrg.MEGRUD,
+      VMSTA : sapSalesOrg.VMSTA,
+      VMSTAD: sapSalesOrg.VMSTAD,
+      VMSTD : sapSalesOrg.VMSTD,
+      DWERK : sapSalesOrg.DWERK,
+      DWERKD: sapSalesOrg.DWERKD,
+      SKTOF : sapSalesOrg.SKTOF,
+      VAVME : sapSalesOrg.VAVME,
+      AUMNG : sapSalesOrg.AUMNG,
+      LFMNG : sapSalesOrg.LFMNG,
+      SCMNG : sapSalesOrg.SCMNG,
+      SCHME : sapSalesOrg.SCHME,
+      RDPRF : sapSalesOrg.RDPRF,
+      RDPRFD: sapSalesOrg.RDPRFD,
+      VERSG : sapSalesOrg.VERSG,
+      VERSGD: sapSalesOrg.VERSGD,
+      KONDM : sapSalesOrg.KONDM,
+      KONDMD: sapSalesOrg.KONDMD,
+      BONUS : sapSalesOrg.BONUS,
+      BONUSD: sapSalesOrg.BONUSD,
+      KTGRM : sapSalesOrg.KTGRM,
+      KTGRMD: sapSalesOrg.KTGRMD,
+      MTPOS : sapSalesOrg.MTPOS,
+      MTPOSD: sapSalesOrg.MTPOSD,
+      PMATN : sapSalesOrg.PMATN,
+      PMATND: sapSalesOrg.PMATND,
+      PROVG : sapSalesOrg.PROVG,
+      PROVGD: sapSalesOrg.PROVGD,
+      MVGR1 : sapSalesOrg.MVGR1,
+      MVGR1D: sapSalesOrg.MVGR1D,
+      MVGR2 : sapSalesOrg.MVGR2,
+      MVGR2D: sapSalesOrg.MVGR2D,
+      MVGR3 : sapSalesOrg.MVGR3,
+      MVGR3D: sapSalesOrg.MVGR3D,
+      MVGR4 : sapSalesOrg.MVGR4,
+      MVGR4D: sapSalesOrg.MVGR4D,
+      MVGR5 : sapSalesOrg.MVGR5,
+      MVGR5D: sapSalesOrg.MVGR5D,
+      PRAT1 : sapSalesOrg.PRAT1,
+      PRAT2 : sapSalesOrg.PRAT2,
+      PRAT3 : sapSalesOrg.PRAT3,
+      PRAT4 : sapSalesOrg.PRAT4,
+      PRAT5 : sapSalesOrg.PRAT5,
+      PRAT6 : sapSalesOrg.PRAT6,
+      PRAT7 : sapSalesOrg.PRAT7,
+      PRAT8 : sapSalesOrg.PRAT8,
+      PRAT9 : sapSalesOrg.PRAT9,
+      PRATA : sapSalesOrg.PRATA,
+      ZZMSRCGRP : sapSalesOrg.ZZMSRCGRP,
+      ZZMSRCGRPD: sapSalesOrg.ZZMSRCGRPD,
+      ZZIPGLN1  : sapSalesOrg.ZZIPGLN1,
+      ZZIPGLN1D : sapSalesOrg.ZZIPGLN1D,
+      ZZIPGLN2  : sapSalesOrg.ZZIPGLN2,
+      ZZIPGLN2D : sapSalesOrg.ZZIPGLN2D,
+      ZZIPGLN3  : sapSalesOrg.ZZIPGLN3,
+      ZZIPGLN3D : sapSalesOrg.ZZIPGLN3D,
+      ZZCOC : sapSalesOrg.ZZCOC,
+      ZZCOCD: sapSalesOrg.ZZCOCD,
+      TAXCLASS: sapSalesOrg.TAXCLASS.*row map (row) -> {
+        ALAND : row.ALAND,
+        ALANDD: row.ALANDD,
+        TATYP : row.TATYP,
+        TATYPD: row.TATYPD,
+        TAXKM : row.TAXKM,
+        VTEXT : row.VTEXT
+      },
+      SALESPLANT: {
+        WERKS : sapSalesOrg.SALESPLANT.WERKS,
+        WERKSD: sapSalesOrg.SALESPLANT.WERKSD,
+        MTVFP : sapSalesOrg.SALESPLANT.MTVFP,
+        MTVFPD: sapSalesOrg.SALESPLANT.MTVFPD,
+        TRAGR : sapSalesOrg.SALESPLANT.TRAGR,
+        TRAGRD: sapSalesOrg.SALESPLANT.TRAGRD,
+        LADGR : sapSalesOrg.SALESPLANT.LADGR,
+        LADGRD: sapSalesOrg.SALESPLANT.LADGRD
+      }
+    }
   },
   tables: {
     ET_SALESORG: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.tables.ET_SALESORG.*row map (row) -> {
@@ -69,14 +162,6 @@ output application/json
       VMSTA  : row.VMSTA,
       VMSTAD : row.VMSTAD,
       VMSTD  : row.VMSTD
-    },
-    ET_TAX: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.tables.ET_TAX.*row map (row) -> {
-      ALAND  : row.ALAND,
-      ALANDD : row.ALANDD,
-      TATYP  : row.TATYP,
-      TATYPD : row.TATYPD,
-      TAXKM  : row.TAXKM,
-      VTEXT  : row.VTEXT
     }
   }
 }]]></ee:set-payload>
