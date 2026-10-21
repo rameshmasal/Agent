@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="rf-salesorg-details" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <set-variable value="#[correlationId]" doc:name="correlationId" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567891" variableName="correlationId"/>
+
+        <ee:transform doc:name="get-params" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567892">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="params"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams default {}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="Choice" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567893">
+            <when expression='#[vars.params.productId != null and vars.params.productId != ""]'>
+                <logger level="INFO" doc:name="log-info" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567894"
+                    message="fetching salesOrg details for product id - #[vars.params.productId]"/>
+                <flow-ref doc:name="sf-salesorg-request" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567895" name="sf-salesorg-request"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="log-info" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567896"
+                    message="Product id is missing."/>
+                <raise-error doc:name="bad-request" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567897"
+                    type="APP:BAD_REQUEST" description="Product Id is missing"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <sub-flow name="sf-salesorg-request" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567898">
+        <ee:transform doc:name="create-req" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567899">
+            <ee:message>
+                <ee:set-payload resource="transformdata/sapnwl-salesorg-request.dwl"/>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="productId"><![CDATA[%dw 2.0
+output application/java
+---
+vars.params.productId default ""]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <flow-ref doc:name="sf-sys-sapnwl-call" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789a" name="sf-sys-sapnwl-call"/>
+
+        <ee:transform doc:name="convert-json" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789b">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  export: {
+    (vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.export -- ["EX_API_SALESORG"]),
+    EX_API_SALESORG: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.export.EX_API_SALESORG
+  },
+  tables: {
+    ET_SALESORG: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.tables.ET_SALESORG.*row map (row) -> {
+      MATNR  : row.MATNR,
+      VKORG  : row.VKORG,
+      VKORGD : row.VKORGD,
+      VTWEG  : row.VTWEG,
+      VTWEGD : row.VTWEGD,
+      VMSTA  : row.VMSTA,
+      VMSTAD : row.VMSTAD,
+      VMSTD  : row.VMSTD
+    },
+    ET_TAX: vars.sap_resp.body.ZGLO_GET_PRODUCT_SALESORG.tables.ET_TAX.*row map (row) -> {
+      ALAND  : row.ALAND,
+      ALANDD : row.ALANDD,
+      TATYP  : row.TATYP,
+      TATYPD : row.TATYPD,
+      TAXKM  : row.TAXKM,
+      VTEXT  : row.VTEXT
+    }
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <ee:transform doc:name="check-no-row" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789c">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="no_row"><![CDATA[%dw 2.0
+output application/java
+---
+isEmpty(payload.export.EV_MATNR default "")]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="Choice" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789d">
+            <when expression="#[vars.no_row == true]">
+                <logger level="INFO" doc:name="log-info" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789e"
+                    message="No product found"/>
+                <ee:transform doc:name="error" doc:id="a1b2c3d4-e5f6-7890-abcd-ef123456789f">
+                    <ee:message/>
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "404",
+        "status": "NOT_FOUND",
+        "message": "Product not found for the given productId.",
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <set-variable value="404" doc:name="status" doc:id="a1b2c3d4-e5f6-7890-abcd-efabcdef0001" variableName="httpStatus"/>
+                <raise-error doc:name="no-rows" doc:id="a1b2c3d4-e5f6-7890-abcd-efabcdef0002"
+                    type="APP:ERROR" description="Product not found"/>
+            </when>
+            <otherwise>
+                <ee:transform doc:name="data-mapping" doc:id="a1b2c3d4-e5f6-7890-abcd-efabcdef0003">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/salesorg-mapping.dwl"/>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>
