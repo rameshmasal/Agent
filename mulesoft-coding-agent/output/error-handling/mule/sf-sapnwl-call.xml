@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="sf-sys-sapnwl-call" doc:id="6f8477e4-dcfa-4fc4-928d-09605ff55199">
+
+        <http:request
+            doc:name="sapnwl-request"
+            doc:id="52528eb5-e1b8-4178-8fa7-56a106253d93"
+            config-ref="sys-sapnwl-api-configuration"
+            method="POST"
+            path="${sys-sapnwl-api.path}"
+            target="rfc_data"
+            targetValue="#[message]">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+    "client_secret" : "${secure::sys-sapnwl-api.client-secret}",
+    "client_id" : "${sys-sapnwl-api.client-id}"
+}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="100..599"/>
+            </http:response-validator>
+        </http:request>
+
+        <ee:transform doc:name="convert-output" doc:id="dd48e1e1-adcd-4ae7-ab7a-a7f69459206d">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="sap_resp"><![CDATA[%dw 2.0
+output application/xml
+---
+{
+    body: vars.rfc_data.payload
+}]]></ee:set-variable>
+                <ee:set-variable variableName="statusCode"><![CDATA[%dw 2.0
+output application/java
+---
+vars.rfc_data.attributes.statusCode]]></ee:set-variable>
+                <ee:set-variable variableName="requestPath"><![CDATA[%dw 2.0
+output application/java
+---
+p('sys-sapnwl-api.path')]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="validate-status">
+            <when expression="#[vars.statusCode != 200]">
+
+                <ee:transform doc:name="build-sap-error" doc:id="6b734c99-074a-4814-aea9-053fe46b50df">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+var errorBody = vars.sap_resp.body
+---
+{
+    "error": {
+        "code": (errorBody."status-code" default vars.statusCode) as String,
+        "status": (errorBody.status default "ERROR"),
+        "message": (errorBody.description default ""),
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+
+                <set-variable
+                    value='#[(vars.statusCode default "400") as Number]'
+                    doc:name="httpStatus"
+                    doc:id="bd1da481-008f-45b0-a08e-b8b3d7618c3f"
+                    variableName="httpStatus"/>
+
+                <raise-error
+                    type="APP:ERROR"
+                    description="SAP returned a non-200 response"/>
+
+            </when>
+        </choice>
+
+        <error-handler>
+            <on-error-continue type="HTTP:CONNECTIVITY, HTTP:TIMEOUT">
+                <ee:transform doc:name="build-connectivity-error">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SERVICE_UNAVAILABLE",
+        "status": "SERVICE_UNAVAILABLE",
+        "message": "SAP system is currently unavailable. Please try again later.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                        <ee:set-variable variableName="httpStatus">503</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <raise-error type="APP:SYSTEM_UNAVAILABLE" description="SAP system is unavailable"/>
+            </on-error-continue>
+            <on-error-continue type="HTTP:SECURITY">
+                <ee:transform doc:name="build-security-error">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SECURITY_ERROR",
+        "status": "INTERNAL_SERVER_ERROR",
+        "message": "SAP authentication or security failure. Please contact support.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                        <ee:set-variable variableName="httpStatus">500</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <raise-error type="APP:SYSTEM_UNAVAILABLE" description="SAP security failure"/>
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+</mule>

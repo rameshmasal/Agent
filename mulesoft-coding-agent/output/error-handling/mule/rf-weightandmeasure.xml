@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="rf-weightandmeasure-details" doc:id="2d7f9583-3b57-4267-a2dd-01f3a913d9fe">
+        <set-variable value="#[correlationId]" doc:name="correlationId" doc:id="1abca4a1-0092-47ba-b1e1-8024956e7346" variableName="correlationId"/>
+
+        <ee:transform doc:name="get-params" doc:id="527a4ad5-5fc8-4746-aa4d-04b0abadf7c1">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="params"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams default {}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="Choice" doc:id="1fd5cfea-9d63-4b68-b20c-b92ce9b0d09f">
+            <when expression='#[vars.params.productId != null and vars.params.productId != ""]'>
+                <logger level="INFO" doc:name="log-info" doc:id="71c64deb-998d-41f3-8c67-a7dcab81ed19"
+                    message="fetching weightandmeasure details for product id - #[vars.params.productId]"/>
+                <flow-ref doc:name="sf-weightandmeasure-request" doc:id="7d844b9a-385d-44a9-95d3-dd897e248b3d" name="sf-weightandmeasure-request"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="log-info" doc:id="1b9551d0-87fc-421e-8fdd-219d763baee5"
+                    message="Product id is missing."/>
+                <raise-error doc:name="bad-request" doc:id="20cb653f-047c-4bf8-96a7-9073e502f8a5" type="APP:BAD_REQUEST" description="Product Id is missing"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <sub-flow name="sf-weightandmeasure-request" doc:id="c49bd525-8fe3-497e-bcf4-df8af27faf17">
+        <ee:transform doc:name="create-req" doc:id="57e5814a-ba6c-497c-81ea-507beeb7432f">
+            <ee:message>
+                <ee:set-payload resource="transformdata/sapnwl-weightnmeasure-request.dwl"/>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="productId"><![CDATA[%dw 2.0
+output application/java
+---
+vars.params.productId default ""]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <flow-ref doc:name="sf-sys-sapnwl-call" doc:id="6ffc292b-ca0f-4382-a728-5515b8b83a7f" name="sf-sys-sapnwl-call"/>
+
+        <ee:transform doc:name="convert-json" doc:id="1ad6158f-9bde-4c26-8e95-2cbb1bfe52d8">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+export: vars.sap_resp.body.ZGLO_GET_PRODUCT_WEIGHTSNMSURE.export,
+      tables: {
+        ET_LOGISTICAL: vars.sap_resp.body.ZGLO_GET_PRODUCT_WEIGHTSNMSURE
+                          .tables.ET_LOGISTICAL.*row
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <ee:transform doc:name="check-no-row" doc:id="4e04084b-7205-4be4-8156-881422a17fae">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="no_row"><![CDATA[%dw 2.0
+output application/java
+---
+isEmpty(payload.export.EV_MATNR default "")]]></ee:set-variable>
+                <ee:set-variable variableName="plantStatus"><![CDATA[%dw 2.0
+output application/java
+var plantStatus = (payload.export.EV_MSTAE[0 to 1] as Number) default ""
+---
+plantStatus]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="Choice" doc:id="433a8b53-f3ae-4e9c-87a2-dc38ee8ca017">
+            <when expression="#[vars.no_row == true]">
+                <logger level="INFO" doc:name="log-info" doc:id="27ea693d-beed-4df3-97d3-fe9f6d58703f"
+                    message="No product found"/>
+                <ee:transform doc:name="error" doc:id="c63a7da5-14ce-4e57-9422-2d4c49fdb2e8">
+                    <ee:message/>
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "404",
+        "status": "NOT_FOUND",
+        "message": "Product not found in SAP"
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <set-variable value="404" doc:name="status" doc:id="f8c82444-2d8c-4321-b538-1806d0f2761b" variableName="httpStatus"/>
+                <raise-error doc:name="no-rows" doc:id="4fcd9aba-bc8c-49d1-96d0-4c90cbf4fe61"
+                    type="APP:ERROR" description="Product not found"/>
+            </when>
+            <when expression="#[vars.plantStatus &lt;=10]">
+                <logger level="INFO" doc:name="Logger" doc:id="61456eab-197d-479a-96fa-5bc2d2298437" message="Calling windchill"/>
+                <flow-ref doc:name="sf-sys-windchill-call" doc:id="28c509e7-9bd1-44d9-a81b-dbfdf8129245" name="sf-sys-windchill-call"/>
+            </when>
+            <otherwise>
+                <ee:transform doc:name="data-mapping" doc:id="fe474c62-73bc-458f-ac38-d135f969cbe0">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/weightnmeasure-mapping.dwl"/>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>

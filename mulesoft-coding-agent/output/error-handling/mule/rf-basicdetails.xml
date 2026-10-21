@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="rf-productdetails-flow" doc:id="64b8ba11-ca7d-4ab8-94dd-58547fc6c091" >
+		<set-variable value="#[correlationId]" doc:name="correlationId" doc:id="e449e71b-a704-4f20-9ff5-bd4ad04c4ea4" variableName="correlationId"/>
+		<ee:transform doc:name="get-params" doc:id="d4bb90d4-ba58-4180-bc4f-b0731eb7d2bb" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="params" ><![CDATA[attributes.queryParams default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="ac070e4b-76b5-4f14-b978-88876366a956" >
+			<when expression='#[vars.params.productId != null and vars.params.productId != ""]'>
+				<logger level="INFO" doc:name="log-info" doc:id="71fb04d1-30df-4bea-8c12-95f97dbcdbe3" message="fetching basic details for product id - #[vars.params.productId]"/>
+				<flow-ref doc:name="sf-product-request" doc:id="9a83c2b8-acd9-4529-807e-4169e51bc846" name="sf-product-request"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="log-info" doc:id="c8dc6631-37e5-43dd-99e3-f6b4d61bf4b0" message="Product id is missing."/>
+				<raise-error doc:name="bad-request" doc:id="b0a0b5d3-bb2b-4fce-a6be-429f83b56dfd" type="APP:BAD_REQUEST" description="Product Id is missing"/>
+			</otherwise>
+		</choice>
+	</flow>
+		<sub-flow name="sf-product-request" doc:id="4daad059-fdcb-4817-bc14-a86dadb8151c" >
+		<ee:transform doc:name="create-req" doc:id="4c84106e-430c-47ad-af6c-e6a4b414550f" >
+			<ee:message >
+				<ee:set-payload resource="transformdata/sapnwl-basic-request.dwl" />
+			
+</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="productId" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.params.productId default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-sys-sapnwl-call" doc:id="41f78b1b-5671-4be8-bc10-5177eb6b6ded" name="sf-sys-sapnwl-call" />
+		<ee:transform doc:name="conve-json" doc:id="8b22a636-1804-4181-aca5-9d0be503ac5c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.sap_resp.body]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value='#[%dw 2.0&#10;output application/json&#10;var export = payload.ZGLO_GET_PRODUCT_BASIC.export&#10;---&#10;isEmpty(export.EV_MATNR default "")]' doc:name="check -no_row" doc:id="06d48971-aceb-4e07-bcd4-97d391d3c7ec" variableName="no_row"/>
+		<choice doc:name="Choice" doc:id="51b97f83-cf3a-49b6-98a2-088fd6082913" >
+			<when expression="#[vars.no_row == true]">
+				<logger level="INFO" doc:name="log-info" doc:id="c713c12b-852d-4916-8dee-845fdd1addec" message="No product found"/>
+				<ee:transform doc:name="error" doc:id="21e49b9c-481d-4738-ae54-217bd6911423">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="app_error" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "error": {
+    "code": "404",
+    "status": "NOT_FOUND",
+    "message": "Product not found for the given productId.",
+  }
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<set-variable value="404" doc:name="status" doc:id="dabf0583-7c59-410c-bfe4-207a6be3f3f7" variableName="httpStatus"/>
+				<raise-error doc:name="no-rows" doc:id="a350757b-eb42-4db0-891b-de4cc30d2f5b" type="APP:ERROR" description="Product not found" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="data-mapping" doc:id="5dc96b3a-777a-44bc-81ee-87ca243bdd88">
+			<ee:message>
+						<ee:set-payload resource="transformdata/product-mapping.dwl" />
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

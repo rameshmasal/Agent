@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="sf-sys-windchill-call" doc:id="6f8477e4-dcfa-4fc4-928d-09605ff55199">
+
+        <http:request
+            doc:name="windchill-request"
+            doc:id="52528eb5-e1b8-4178-8fa7-56a106253d93"
+            config-ref="sys-windchill-api-configuration"
+            path="${sys-windchill-api.path}"
+            target="windchill"
+            targetValue="#[message]">
+            <http:headers><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "client_secret" : "${secure::sys-sapnwl-api.client-secret}",
+    "client_id" : "${sys-sapnwl-api.client-id}"
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	materialNumber : (vars.params.productId as Number) as String default ""
+	
+	}]]]></http:query-params>
+			<http:response-validator>
+                <http:success-status-code-validator values="100..599"/>
+            </http:response-validator>
+        </http:request>
+
+        <ee:transform doc:name="convert-output" doc:id="dd48e1e1-adcd-4ae7-ab7a-a7f69459206d">
+            <ee:message>
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+    body: vars.windchill.payload
+}]]></ee:set-payload>
+			</ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="statusCode"><![CDATA[%dw 2.0
+output application/java
+---
+vars.windchill.attributes.statusCode]]></ee:set-variable>
+                <ee:set-variable variableName="requestPath"><![CDATA[%dw 2.0
+output application/java
+---
+p('sys-windchill-api.path')]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<choice doc:name="validate-status">
+            <when expression="#[vars.statusCode != 200]">
+
+                <ee:transform doc:name="build-error" doc:id="6b734c99-074a-4814-aea9-053fe46b50df">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+var errorBody = payload
+---
+{
+    "error": {
+        "code": (errorBody."status-code" default vars.statusCode) as String,
+        "status": (errorBody.status default "ERROR"),
+        "message": (errorBody.description default ""),
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+
+                <set-variable
+                    value='#[(vars.statusCode default "404") as Number]'
+                    doc:name="httpStatus"
+                    doc:id="bd1da481-008f-45b0-a08e-b8b3d7618c3f"
+                    variableName="httpStatus"/>
+
+                <raise-error
+                    type="APP:ERROR"
+                    description="SAP returned a non-200 response"/>
+
+            </when>
+			<when expression='#[(vars.windchill.payload.Envelope.Body.getWeightsAndMeasuresResponse.return.statusCode) != "NIS_GET_WAM_000"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="c4fe8b35-8606-4400-8b43-3c218af84938" message="Not found in WC"/>
+				<ee:transform doc:name="build-error" doc:id="d82dd7a0-e97f-4be2-b412-3ef7e952337f">
+					<ee:variables>
+						<ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+ns S http://schemas.xmlsoap.org/soap/envelope/
+---
+do {
+    var returnRec = entriesOf(payload.body.S#Envelope.S#Body)[0].value.return
+    ---
+    {
+        "error": {
+            "code": "404",
+            "status": "NOT_FOUND",
+            "message": (returnRec.statusMessage as String default "Product not found in Windchill"),
+            "correlationId": vars.correlationId default "",
+            "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+        }
+    }
+}]]></ee:set-variable>
+						<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<raise-error type="APP:ERROR" description="Product not found in Windchill"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="converto-json" doc:id="6fd5ee34-72de-463b-900f-a3c5d2de59fa" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns S   http://schemas.xmlsoap.org/soap/envelope/
+ns ns2 http://nisservice.plm.nwl.com/
+---
+do {
+    var wamReturn    = payload.body.S#Envelope.S#Body.ns2#getWeightsAndMeasuresResponse.return
+    var imperialList = wamReturn.*aunImperialData
+    var metricList   = wamReturn.*aunMetricData
+    ---
+    {
+        productId:          wamReturn.materialNumber,
+        productDesc:        wamReturn.materialDescription,
+        crossPlantStatus:   "",
+        productType:        "",
+        division:           "",
+        primaryTI:          wamReturn.casesPerTier,
+        primaryHI:          wamReturn.tiersPerPallet,
+        casePerPallet:      wamReturn.casesPerPallet,
+        pieceQty:           wamReturn.pieceQuantity,
+
+        imperial: imperialList map (imp) -> do {
+            var aunCode = imp.AUN as String
+            var met     = (metricList filter ($.AUN == aunCode))[0] default {}
+            ---
+            {
+                alternativeUnit:             imp.AUN,
+                alternativeUnitDesc:         imp.aunDesc,
+                units:                       imp.quantity,
+                denominator:                 "1",
+                ean:                         imp.barCode           default "",
+                categoryEAN:                 "",
+                length:                      imp.length            default "0.000",
+                width:                       imp.width             default "0.000",
+                height:                      imp.height            default "0.000",
+                unitLengthWidthHeight:       imp.unitDimension     default "",
+                unitLengthWidthHeightDesc:   imp.unitDimensionDesc default "",
+                volume:                      imp.volume            default "0.000",
+                unitVolume:                  (imp.volumeUOM default "") replace /\"/ with "IN" default "",
+                unitVolumeDesc:              imp.volumeUOMDesc     default "",
+                grossWeight:                 imp.grossWeight       default "0.000",
+                netWeight:                   imp.netWeight         default "0.000",
+                unitWeight:                  imp.weightUOM         default "",
+                unitWeightDesc:              imp.weightUOMDesc     default "",
+
+                metric: {
+                    metricLength:                    met.length            default "0.000",
+                    metricWidth:                     met.width             default "0.000",
+                    metricHeight:                    met.height            default "0.000",
+                    metricUnitLengthWidthHeight:     met.unitDimension     default "",
+                    metricUnitLengthWidthHeightDesc: met.unitDimensionDesc default "",
+                    metricVolume:                    met.volume            default "0.000",
+                    metricUnitVolume:                met.volumeUOM         default "",
+                    metricUnitVolumeDesc:            met.volumeUOMDesc     default "",
+                    metricGrossWeight:               met.grossWeight       default "0.000",
+                    metricNetWeight:                 met.netWeight         default "0.000",
+                    metricUnitWeight:                met.weightUOM         default "",
+                    metricUnitWeightDesc:            met.weightUOMDesc     default ""
+                }
+            }
+        },
+
+        createdAt:    "",
+        updatedAt:    "",
+        sourceSystem: "Windchill"
+    }
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+        </choice>
+
+        <error-handler>
+            <on-error-continue type="HTTP:CONNECTIVITY, HTTP:TIMEOUT">
+                <ee:transform doc:name="build-connectivity-error">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SERVICE_UNAVAILABLE",
+        "status": "SERVICE_UNAVAILABLE",
+        "message": "Windchill system is currently unavailable. Please try again later.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                        <ee:set-variable variableName="httpStatus">503</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <raise-error type="APP:SYSTEM_UNAVAILABLE" description="Windchill system is unavailable"/>
+            </on-error-continue>
+            <on-error-continue type="HTTP:SECURITY">
+                <ee:transform doc:name="build-security-error">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SECURITY_ERROR",
+        "status": "INTERNAL_SERVER_ERROR",
+        "message": "Windchill authentication or security failure. Please contact support.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                        <ee:set-variable variableName="httpStatus">500</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <raise-error type="APP:SYSTEM_UNAVAILABLE" description="Windchill security failure"/>
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+	<flow name="sf-sys-windchill-fgcollection" doc:id="3115d547-66ef-41b0-a4e0-ec58f28295fa" >
+		<http:request doc:name="windchill-request" doc:id="908a80dc-f659-42ca-8ae4-a1efebdbd2dc" config-ref="sys-windchill-api-configuration" path="${sys-windchill-api.fg-path}" target="windchill" targetValue="#[message]" method="POST">
+			<http:headers ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    "client_secret" : "${secure::sys-sapnwl-api.client-secret}",
+    "client_id" : "${sys-sapnwl-api.client-id}"
+}]]]></http:headers>
+			<http:response-validator >
+				<http:success-status-code-validator values="100..599" />
+			</http:response-validator>
+		</http:request>
+		<ee:transform doc:name="convert-output" doc:id="66cfa2ab-05b7-492e-8dc6-2662e24f8e59" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+    body: vars.windchill.payload
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="statusCode" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.windchill.attributes.statusCode]]></ee:set-variable>
+				<ee:set-variable variableName="requestPath" ><![CDATA[%dw 2.0
+output application/java
+---
+p('sys-windchill-api.fg-path')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="validate-status" doc:id="6e94c601-d8df-4f35-b53c-209c0cb09db9" >
+			<when expression="#[vars.statusCode != 200]" >
+				<ee:transform doc:name="build-error" doc:id="07805481-dbaf-4986-bc75-661716acb0c7" >
+					<ee:variables >
+						<ee:set-variable variableName="app_error" ><![CDATA[%dw 2.0
+output application/json
+var errorBody = payload
+---
+{
+    "error": {
+        "code": (errorBody."status-code" default vars.statusCode) as String,
+        "status": (errorBody.status default "ERROR"),
+        "message": (errorBody.description default ""),
+    }
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<set-variable value='#[(vars.statusCode default "404") as Number]' doc:name="httpStatus" doc:id="25019b36-0d8d-40a9-9fef-ece3d5ef7ac7" variableName="httpStatus" />
+				<raise-error doc:name="Raise error" doc:id="46481289-53eb-48a8-bcd5-7c888da55bf3" type="APP:ERROR" description="SAP returned a non-200 response" />
+			</when>
+			<when expression='#[(vars.windchill.payload.Envelope.Body.getWeightsAndMeasuresResponse.return.statusCode) != "NIS_CFGC_FG_000"]' >
+				<logger level="INFO" doc:name="Logger" doc:id="d6e87a51-7e0e-4793-a6b9-7ccd448b2fff" message="Not found in WC" />
+				<ee:transform doc:name="build-error" doc:id="f262bb92-6237-4b6b-aa5e-14948662b7b6">
+					<ee:variables>
+						<ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+ns S http://schemas.xmlsoap.org/soap/envelope/
+---
+do {
+    var returnRec = entriesOf(payload.body.S#Envelope.S#Body)[0].value.return
+    ---
+    {
+        "error": {
+            "code": "404",
+            "status": "NOT_FOUND",
+            "message": (returnRec.statusMessage as String default "Product not found in Windchill"),
+            "correlationId": vars.correlationId default "",
+            "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+        }
+    }
+}]]></ee:set-variable>
+						<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<raise-error type="APP:ERROR" description="Product not found in Windchill"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="converto-json" doc:id="021ca058-6177-4451-baaf-33eed911ef96" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns S   http://schemas.xmlsoap.org/soap/envelope/
+ns ns2 http://nisservice.plm.nwl.com/
+---
+do {
+    var responseBody = payload.body.S#Envelope.S#Body
+                              .ns2#createOrUpdateFGCollectionAndFGsResponse
+    var returnList   = responseBody.*return
+    ---
+    {
+        response: returnList map (rec) -> {
+            fgcNumber:     rec.fgcNumber     default "",
+            statusCode:    rec.statusCode    default "",
+            statusMessage: rec.statusMessage default "",
+            fgRecords: (rec.*fgRecords default []) map (fg) -> {
+                fgName:           fg.fgName           default "",
+                fgNumber:         fg.fgNumber          default "",
+                nisSKUIdentifier: fg.nisSKUIdentifier  default "",
+                statusCode:       fg.statusCode        default "",
+                statusMessage:    fg.statusMessage     default ""
+            }
+        }
+    }
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-continue type="HTTP:CONNECTIVITY, HTTP:TIMEOUT">
+				<ee:transform doc:name="build-connectivity-error">
+					<ee:variables>
+						<ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SERVICE_UNAVAILABLE",
+        "status": "SERVICE_UNAVAILABLE",
+        "message": "Windchill system is currently unavailable. Please try again later.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+						<ee:set-variable variableName="httpStatus">503</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<raise-error type="APP:SYSTEM_UNAVAILABLE" description="Windchill system is unavailable"/>
+			</on-error-continue>
+			<on-error-continue type="HTTP:SECURITY">
+				<ee:transform doc:name="build-security-error">
+					<ee:variables>
+						<ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": "SECURITY_ERROR",
+        "status": "INTERNAL_SERVER_ERROR",
+        "message": "Windchill authentication or security failure. Please contact support.",
+        "correlationId": vars.correlationId default "",
+        "timestamp": now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<raise-error type="APP:SYSTEM_UNAVAILABLE" description="Windchill security failure"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>
