@@ -8,6 +8,14 @@ var filterVtweg = vars.params.distributionChannel default ""
 var filteredSalesOrgs = salesorgs filter (row) ->
   (isEmpty(filterVkorg) or row.VKORG == filterVkorg) and
   (isEmpty(filterVtweg) or row.VTWEG == filterVtweg)
+// Normalise TAXCLASS: handles Array (new rf-salesorg) or {row:...} object (raw XML conversion)
+var taxRaw  = salesorg.TAXCLASS
+var taxList =
+  if (taxRaw == null)          []
+  else if (taxRaw is Array)    taxRaw
+  else if (taxRaw.row is Array) taxRaw.row
+  else if (taxRaw.row != null) [taxRaw.row]
+  else                         []
 ---
 {
   productId        : exp.EV_MATNR,
@@ -91,7 +99,7 @@ var filteredSalesOrgs = salesorgs filter (row) ->
       productAttribute10: salesorg.PRATA
     },
 
-    taxClassifications: (salesorg.TAXCLASS default []) map (row) -> {
+    taxClassifications: taxList map (row) -> {
       countryId            : row.ALAND,
       countryDesc          : row.ALANDD,
       taxCategoryId        : row.TATYP,
