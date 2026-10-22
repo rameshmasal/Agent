@@ -15,9 +15,11 @@
         <set-variable variableName="messageId" value="#[uuid()]" doc:name="messageId"/>
 
         <set-variable variableName="logType" value="API_REQUEST" doc:name="logType"/>
-        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
-        <set-variable variableName="logStatus" value="#[null]" doc:name="logStatus"/>
-        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+        <set-variable variableName="logPayload" value="#[payload.^raw as String]" doc:name="logPayload" />
+		<set-variable variableName="logStatus" value="#[null]" doc:name="logStatus"/>
+        <!-- [STUDIO:"Async"]<async doc:name="Async" doc:id="19098735-e521-400b-87aa-33f881b1cb78" >
+			<flow-ref name="sf-log-event" doc:name="sf-log-event" />
+		</async> [STUDIO] -->
 
         <flow-ref name="sf-build-mq-message" doc:name="sf-build-mq-message"/>
         <flow-ref name="sf-get-token" doc:name="sf-get-token"/>
@@ -61,14 +63,55 @@
         </choice>
 
         <set-variable variableName="logType" value="API_RESPONSE" doc:name="logType"/>
-        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logPayload" value="#[payload.^raw as String]" doc:name="logPayload"/>
         <set-variable variableName="logStatus" value="#[vars.httpStatus]" doc:name="logStatus"/>
-        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+        <async doc:name="Async" doc:id="802d6e61-1a5e-421f-8219-ca809a91cfed" >
+			<flow-ref name="sf-log-event" doc:name="sf-log-event" />
+		</async>
     </flow>
 
-    <!-- Converts any inbound event to JSON and wraps it as {"body": "<json string>"}; invalid input returns 400 -->
+    <!-- Builds the MQ envelope {"body": "<string>"}. A choice router on the request media type decides how the body is prepared:
+         json and xml are passed through as received; text/plain and every other type are converted to JSON and validated.
+         Anything empty or not convertible returns 400. -->
     <sub-flow name="sf-build-mq-message">
         <try doc:name="Try">
+            <choice doc:name="check-media-type">
+                <when expression="#[isEmpty(payload)]">
+                    <raise-error type="APP:EMPTY_BODY" description="Request body is empty"/>
+                </when>
+                <!-- JSON: passed as received, not parsed or re-written -->
+                <when expression='#[(payload.^mimeType default "") contains "json"]'>
+                    <set-variable variableName="eventBody" value="#[payload.^raw as String]" doc:name="json-as-is"/>
+                </when>
+                <!-- XML (application/xml, text/xml): passed as received -->
+                <when expression='#[(payload.^mimeType default "") contains "xml"]'>
+                    <set-variable variableName="eventBody" value="#[payload.^raw as String]" doc:name="xml-as-is"/>
+                </when>
+                <!-- text/plain: convert to JSON; the text must itself be valid JSON -->
+                <when expression='#[(payload.^mimeType default "") contains "text/plain"]'>
+                    <ee:transform doc:name="text-to-json">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+read(payload as String, "application/json")]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                    <set-variable variableName="eventBody" value='#[write(payload, "application/json")]' doc:name="converted-json"/>
+                </when>
+                <!-- any other type (csv, form-urlencoded, ...): read by its media type, convert to JSON and validate -->
+                <otherwise>
+                    <ee:transform doc:name="default-to-json">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                    <set-variable variableName="eventBody" value='#[write(payload, "application/json")]' doc:name="converted-json"/>
+                </otherwise>
+            </choice>
             <ee:transform doc:name="create-mq-request">
                 <ee:message>
                     <ee:set-payload resource="transformdata/mq-write-to-mq-request.dwl" />
@@ -80,9 +123,32 @@
                     <set-variable variableName="errStatus" value="BAD_REQUEST" doc:name="errStatus"/>
                     <set-variable variableName="errMessage" value="${application-msgs.msg-invalid-json}" doc:name="errMessage"/>
                     <flow-ref name="sf-build-app-error" doc:name="sf-build-app-error"/>
-                    <raise-error type="APP:ERROR" description="Request body is empty or not valid JSON"/>
+                    <raise-error type="APP:ERROR" description="Request body is empty or cannot be converted to JSON"/>
                 </on-error-propagate>
             </error-handler>
         </try>
     </sub-flow>
+	<sub-flow name="sf-build-app-error" doc:id="994bf9a4-8324-4f21-9e44-8c355651866d" >
+		<ee:transform doc:name="build-app-error" doc:id="7a987642-2f1a-48df-a190-0392444c8255" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="app_error" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code": vars.errCode,
+        "status": vars.errStatus,
+        "message": vars.errMessage,
+        "correlationId": vars.correlationId default correlationId
+    }
+}]]></ee:set-variable>
+				<ee:set-variable variableName="httpStatus" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.errCode as Number]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+
 </mule>

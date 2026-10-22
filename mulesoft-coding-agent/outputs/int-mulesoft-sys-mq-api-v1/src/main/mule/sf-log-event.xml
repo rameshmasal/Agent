@@ -45,7 +45,7 @@ output application/json
     <sub-flow name="sf-log-error">
         <set-variable variableName="logType" value="ERROR" doc:name="logType"/>
         <set-variable variableName="logStatus" value="#[vars.httpStatus]" doc:name="logStatus"/>
-        <set-variable variableName="logPayload" value="#['errorType=' ++ (error.errorType.namespace default '') ++ ':' ++ (error.errorType.identifier default '') ++ ', description=' ++ (error.description default '') ++ ', response: ' ++ (payload as String)]" doc:name="logPayload"/>
+        <set-variable variableName="logPayload" value="#['errorType=' ++ (error.errorType.namespace default '') ++ ':' ++ (error.errorType.identifier default '') ++ ', description=' ++ (error.description default '') ++ ', response: ' ++ (payload.^raw as String)]" doc:name="logPayload"/>
         <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
         <choice doc:name="server-error">
             <when expression="#[(vars.httpStatus default 500) as Number >= 500]">

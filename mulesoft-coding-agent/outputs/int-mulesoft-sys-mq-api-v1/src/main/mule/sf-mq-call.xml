@@ -62,7 +62,7 @@
     <!-- PUT the envelope in the payload to the queue in vars.queueName using vars.messageId and vars.mqToken. Sets vars.mqStatus. -->
     <sub-flow name="sf-mq-put">
         <set-variable variableName="logType" value="MQ_REQUEST" doc:name="logType"/>
-        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logPayload" value="#[payload.^raw as String]" doc:name="logPayload"/>
         <set-variable variableName="logStatus" value="#[null]" doc:name="logStatus"/>
         <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
 
@@ -91,7 +91,7 @@
 
         <set-variable variableName="mqStatus" value="#[vars.mqResponse.attributes.statusCode]" doc:name="mqStatus"/>
         <set-variable variableName="logType" value="MQ_RESPONSE" doc:name="logType"/>
-        <set-variable variableName="logPayload" value="#[vars.mqResponse.payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logPayload" value="#[vars.mqResponse.payload.^raw as String]" doc:name="logPayload"/>
         <set-variable variableName="logStatus" value="#[vars.mqStatus]" doc:name="logStatus"/>
         <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
     </sub-flow>
