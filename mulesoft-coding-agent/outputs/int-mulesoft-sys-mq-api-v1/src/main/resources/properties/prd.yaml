@@ -1,0 +1,86 @@
+#API configuration doc
+sys-mq-api:
+  http-listener:
+    port: "8081"
+    path: "/api/*"
+    console-path: "/console/*"
+    timeout: "180000"
+    idle-timeout: "180000"
+    auto-discovery-id: "0"   # API Manager ID is only known after the API is registered; "0" is the Newell placeholder
+  console:
+    initial-state: "stopped"   # started | stopped; the APIKit console is off in prd
+  timeout: "60000"
+
+#Anypoint MQ configuration (downstream) - the queue name comes from the request path
+anypoint-mq:
+  protocol: "HTTPS"
+  host: "mq-us-east-1.anypoint.mulesoft.com"
+  port: "443"
+  base-path: "/api/v1"
+  org-id: "REPLACE_WITH_PRD_MQ_ORG_ID"
+  env-id: "REPLACE_WITH_PRD_MQ_ENV_ID"
+  timeout: "30000"
+  idle-timeout: "30000"
+  auth-scheme: "bearer"
+  content-type: "application/json"
+  retry:
+    max-retries: "2"
+    delay-ms: "1000"
+
+#Anypoint Platform token service (downstream)
+anypoint-auth:
+  protocol: "HTTPS"
+  host: "anypoint.mulesoft.com"
+  port: "443"
+  path: "/accounts/oauth2/token"
+  grant-type: "client_credentials"
+  client-id: "REPLACE_WITH_PRD_CLIENT_ID"
+  content-type: "application/json"
+  timeout: "30000"
+  idle-timeout: "30000"
+  token-ttl-seconds: "3300"   # token lives 1 hour; refresh early
+
+#Single-line log statements
+logging:
+  enabled: "true"
+  max-payload-chars: "100000"
+  status:
+    success: "Success"
+    error: "Error"
+  messages:
+    api-request: "Received request to write message to queue"
+    mq-request: "Placing message on queue"
+    mq-response: "Anypoint MQ responded with status"
+    api-response: "Message placed successfully, returning status"
+    error: "Failed to process"
+
+#Slack notification (server-side errors only)
+notification:
+  api-name: "sys-mq-api-v1"
+
+#Application Messages
+application-msgs:
+  status-failure: "FAILURE"
+  status-success: "SUCCESS"
+  code-500: "500"
+  status-code-200: "200"
+  status-code-201: "201"
+  status-code-400: "400"
+  status-code-401: "401"
+  status-code-404: "404"
+  status-code-405: "405"
+  status-code-406: "406"
+  status-code-415: "415"
+  status-code-500: "500"
+  status-code-501: "501"
+  status-code-502: "502"
+  status-code-503: "503"
+  status-code-504: "504"
+  type-http-error: "HTTP:ERROR"
+  type-http-success: "HTTP:SUCCESS"
+  msg-success: "Request processed successfully!"
+  msg-error: "Error has occured while processing"
+  msg-invalid-json: "Request body is empty or not valid JSON."
+  msg-queue-not-found: "Queue not found in Anypoint MQ:"
+  msg-mq-unexpected-status: "Anypoint MQ returned unexpected status"
+  msg-token-failure: "Unable to obtain the Anypoint access token."

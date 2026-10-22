@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "404",
+    "status": "NOT_FOUND",
+    "message": "Queue not found in Anypoint MQ.",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "path": "/mq/write/uat-test-mq",
+    "correlationId": "c3d5e7f9-a2b4-4678-cdef-112233445566"
+  }
+}

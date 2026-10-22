@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns:os="http://www.mulesoft.org/schema/mule/os"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+    http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- Returns vars.mqToken from the cache, or fetches and caches a new one -->
+    <sub-flow name="sf-get-token">
+        <os:retrieve doc:name="retrieve-token" key="mq-access-token" objectStore="mq-token-store" target="mqToken">
+            <os:default-value><![CDATA[#[null]]]></os:default-value>
+        </os:retrieve>
+        <choice doc:name="token-cached">
+            <when expression="#[isEmpty(vars.mqToken)]">
+                <flow-ref doc:name="sf-fetch-token" name="sf-fetch-token"/>
+            </when>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="sf-fetch-token">
+        <http:request doc:name="anypoint-token-request"
+            config-ref="anypoint-auth-configuration"
+            method="POST"
+            path="${anypoint-auth.path}"
+            target="tokenResponse"
+            targetValue="#[message]">
+            <http:body><![CDATA[#[output application/json
+---
+{
+    "client_id": "${anypoint-auth.client-id}",
+    "client_secret": "${secure::anypoint-auth.client-secret}",
+    "grant_type": "${anypoint-auth.grant-type}"
+}]]]></http:body>
+            <http:headers><![CDATA[#[{"Content-Type": p('anypoint-auth.content-type')}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="100..599"/>
+            </http:response-validator>
+        </http:request>
+
+        <choice doc:name="token-status">
+            <when expression="#[vars.tokenResponse.attributes.statusCode != 200]">
+                <logger level="ERROR" doc:name="log-token-failure" message="Anypoint token request failed with status #[vars.tokenResponse.attributes.statusCode]"/>
+                <set-variable variableName="errCode" value="502" doc:name="errCode"/>
+                <set-variable variableName="errStatus" value="BAD_GATEWAY" doc:name="errStatus"/>
+                <set-variable variableName="errMessage" value="${application-msgs.msg-token-failure}" doc:name="errMessage"/>
+                <flow-ref name="sf-build-app-error" doc:name="sf-build-app-error"/>
+                <raise-error type="APP:ERROR" description="Anypoint token service returned a non-200 response"/>
+            </when>
+        </choice>
+
+        <set-variable variableName="mqToken" value="#[vars.tokenResponse.payload.access_token]" doc:name="mqToken"/>
+        <os:store doc:name="store-token" key="mq-access-token" objectStore="mq-token-store">
+            <os:value><![CDATA[#[vars.mqToken]]]></os:value>
+        </os:store>
+    </sub-flow>
+
+    <!-- PUT the envelope in the payload to the queue in vars.queueName using vars.messageId and vars.mqToken. Sets vars.mqStatus. -->
+    <sub-flow name="sf-mq-put">
+        <set-variable variableName="logType" value="MQ_REQUEST" doc:name="logType"/>
+        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logStatus" value="#[null]" doc:name="logStatus"/>
+        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+
+        <until-successful maxRetries="${anypoint-mq.retry.max-retries}" millisBetweenRetries="${anypoint-mq.retry.delay-ms}" doc:name="Until Successful">
+            <http:request doc:name="anypoint-mq-put"
+                config-ref="anypoint-mq-configuration"
+                method="PUT"
+                path="${anypoint-mq.base-path}/organizations/${anypoint-mq.org-id}/environments/${anypoint-mq.env-id}/destinations/{queueName}/messages/{messageId}"
+                target="mqResponse"
+                targetValue="#[message]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[{
+    "Authorization": p('anypoint-mq.auth-scheme') ++ " " ++ vars.mqToken,
+    "Content-Type": p('anypoint-mq.content-type')
+}]]]></http:headers>
+                <http:uri-params><![CDATA[#[{
+    "queueName": vars.queueName,
+    "messageId": vars.messageId
+}]]]></http:uri-params>
+                <!-- 5xx raises an error so until-successful retries; 4xx is handled by the calling flow -->
+                <http:response-validator>
+                    <http:success-status-code-validator values="200..499"/>
+                </http:response-validator>
+            </http:request>
+        </until-successful>
+
+        <set-variable variableName="mqStatus" value="#[vars.mqResponse.attributes.statusCode]" doc:name="mqStatus"/>
+        <set-variable variableName="logType" value="MQ_RESPONSE" doc:name="logType"/>
+        <set-variable variableName="logPayload" value="#[vars.mqResponse.payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logStatus" value="#[vars.mqStatus]" doc:name="logStatus"/>
+        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+    </sub-flow>
+</mule>

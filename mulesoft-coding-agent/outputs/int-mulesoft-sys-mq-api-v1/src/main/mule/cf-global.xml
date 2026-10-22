@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<configuration-properties doc:name="Configuration properties" file="properties/${env}.yaml"/>
+	<secure-properties:config name="Secure_Properties_Config1" doc:name="Secure Properties Config" file="properties/${env}-secure.yaml" key="${masterKey}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<api-gateway:autodiscovery apiId="${sys-mq-api.http-listener.auto-discovery-id}" doc:name="API Autodiscovery" flowRef="sys-mq-api-v1-main" ignoreBasePath="true"/>
+	<import doc:name="Import" file="pf-global-error-handler.xml" />
+	<import doc:name="Import" file="rf-build-error-flow.xml" />
+
+	<!-- Anypoint MQ (downstream) -->
+	<http:request-config name="anypoint-mq-configuration" doc:name="HTTP Request configuration" responseTimeout="${anypoint-mq.timeout}">
+		<http:request-connection host="${anypoint-mq.host}" port="${anypoint-mq.port}" connectionIdleTimeout="${anypoint-mq.idle-timeout}" protocol="${anypoint-mq.protocol}"/>
+	</http:request-config>
+
+	<!-- Anypoint Platform token service (downstream) -->
+	<http:request-config name="anypoint-auth-configuration" doc:name="HTTP Request configuration" responseTimeout="${anypoint-auth.timeout}">
+		<http:request-connection host="${anypoint-auth.host}" port="${anypoint-auth.port}" connectionIdleTimeout="${anypoint-auth.idle-timeout}" protocol="${anypoint-auth.protocol}"/>
+	</http:request-config>
+
+	<!-- Access token cache; entries expire before the 1 hour token lifetime -->
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config"/>
+	<os:object-store name="mq-token-store" doc:name="Object store" config-ref="ObjectStore_Config" persistent="false" entryTtl="${anypoint-auth.token-ttl-seconds}" entryTtlUnit="SECONDS"/>
+</mule>

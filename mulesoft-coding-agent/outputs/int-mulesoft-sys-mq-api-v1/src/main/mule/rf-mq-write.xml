@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:os="http://www.mulesoft.org/schema/mule/os"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="rf-mq-write-details">
+        <!-- save inbound attributes before any outbound call overwrites them -->
+        <set-variable variableName="correlationId" value="#[attributes.headers.'x-transaction-id' default correlationId]" doc:name="correlationId"/>
+        <set-variable variableName="queueName" value="#[attributes.uriParams.queueName]" doc:name="queueName"/>
+        <set-variable variableName="messageId" value="#[uuid()]" doc:name="messageId"/>
+
+        <set-variable variableName="logType" value="API_REQUEST" doc:name="logType"/>
+        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logStatus" value="#[null]" doc:name="logStatus"/>
+        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+
+        <flow-ref name="sf-build-mq-message" doc:name="sf-build-mq-message"/>
+        <flow-ref name="sf-get-token" doc:name="sf-get-token"/>
+        <flow-ref name="sf-mq-put" doc:name="sf-mq-put"/>
+
+        <!-- expired or revoked token: drop the cached token, fetch a new one and retry once -->
+        <choice doc:name="token-rejected">
+            <when expression="#[vars.mqStatus == 401]">
+                <logger level="WARN" doc:name="log-token-refresh" message="Anypoint MQ rejected the cached token; refreshing and retrying once"/>
+                <os:remove doc:name="clear-token" key="mq-access-token" objectStore="mq-token-store" />
+                <flow-ref name="sf-get-token" doc:name="sf-get-token"/>
+                <flow-ref name="sf-mq-put" doc:name="sf-mq-put"/>
+            </when>
+        </choice>
+
+        <choice doc:name="validate-mq-status">
+            <when expression="#[vars.mqStatus >= 200 and vars.mqStatus &lt; 300]">
+                <ee:transform doc:name="build-response">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/mq-write-response.dwl" />
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </when>
+            <when expression="#[vars.mqStatus == 404]">
+                <set-variable variableName="errCode" value="404" doc:name="errCode"/>
+                <set-variable variableName="errStatus" value="NOT_FOUND" doc:name="errStatus"/>
+                <set-variable variableName="errMessage" value="#[p('application-msgs.msg-queue-not-found') ++ ' ' ++ vars.queueName]" doc:name="errMessage"/>
+                <flow-ref name="sf-build-app-error" doc:name="sf-build-app-error"/>
+                <raise-error type="APP:ERROR" description="Queue not found in Anypoint MQ"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="errCode" value="502" doc:name="errCode"/>
+                <set-variable variableName="errStatus" value="BAD_GATEWAY" doc:name="errStatus"/>
+                <set-variable variableName="errMessage" value="#[p('application-msgs.msg-mq-unexpected-status') ++ ' ' ++ vars.mqStatus as String]" doc:name="errMessage"/>
+                <flow-ref name="sf-build-app-error" doc:name="sf-build-app-error"/>
+                <raise-error type="APP:ERROR" description="Anypoint MQ returned an unexpected status"/>
+            </otherwise>
+        </choice>
+
+        <set-variable variableName="logType" value="API_RESPONSE" doc:name="logType"/>
+        <set-variable variableName="logPayload" value="#[payload as String]" doc:name="logPayload"/>
+        <set-variable variableName="logStatus" value="#[vars.httpStatus]" doc:name="logStatus"/>
+        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+    </flow>
+
+    <!-- Converts any inbound event to JSON and wraps it as {"body": "<json string>"}; invalid input returns 400 -->
+    <sub-flow name="sf-build-mq-message">
+        <try doc:name="Try">
+            <ee:transform doc:name="create-mq-request">
+                <ee:message>
+                    <ee:set-payload resource="transformdata/mq-write-to-mq-request.dwl" />
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate type="ANY" enableNotifications="false" logException="false">
+                    <set-variable variableName="errCode" value="400" doc:name="errCode"/>
+                    <set-variable variableName="errStatus" value="BAD_REQUEST" doc:name="errStatus"/>
+                    <set-variable variableName="errMessage" value="${application-msgs.msg-invalid-json}" doc:name="errMessage"/>
+                    <flow-ref name="sf-build-app-error" doc:name="sf-build-app-error"/>
+                    <raise-error type="APP:ERROR" description="Request body is empty or not valid JSON"/>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+</mule>

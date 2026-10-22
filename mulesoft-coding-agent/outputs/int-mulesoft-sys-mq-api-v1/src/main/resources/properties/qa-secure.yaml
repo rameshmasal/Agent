@@ -1,0 +1,3 @@
+#anypoint auth - Blowfish encrypted
+anypoint-auth:
+  client-secret: "![REPLACE_WITH_ENCRYPTED_QA_CLIENT_SECRET]"

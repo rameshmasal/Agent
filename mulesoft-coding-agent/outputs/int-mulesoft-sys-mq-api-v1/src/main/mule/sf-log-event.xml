@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- Expects vars.logType (API_REQUEST|MQ_REQUEST|MQ_RESPONSE|API_RESPONSE|ERROR), vars.logPayload, vars.logStatus.
+         Sets SplunkMessage, Status and log_cust_att, then calls the common-core sf-splunk-sub-flow (synchronous).
+         Never throws: a logging failure must not fail the API call. -->
+    <sub-flow name="sf-log-event">
+        <try doc:name="Try">
+            <choice doc:name="logging-enabled">
+                <when expression="#[p('logging.enabled') == 'true']">
+                    <ee:transform doc:name="set-details-for-splunk-logging">
+                        <ee:message/>
+                        <ee:variables>
+                            <ee:set-variable resource="transformdata/log-line.dwl" variableName="SplunkMessage" />
+                            <ee:set-variable resource="transformdata/splunk-status.dwl" variableName="Status" />
+                            <ee:set-variable variableName="log_cust_att"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "correlationId": vars.correlationId default correlationId,
+    "queueName": vars.queueName default "",
+    "messageId": vars.messageId default "",
+    "isSuccess": if (vars.logType == "ERROR") "false" else "true",
+    "statusMessage": if (vars.logType == "ERROR") (error.description default "") else (vars.SplunkMessage default "")
+}]]></ee:set-variable>
+                        </ee:variables>
+                    </ee:transform>
+                    <flow-ref doc:name="sf-splunk-sub-flow" name="sf-splunk-sub-flow" />
+                </when>
+            </choice>
+            <error-handler>
+                <on-error-continue type="ANY" enableNotifications="false" logException="false">
+                    <logger level="WARN" doc:name="log-failed" message="Splunk log event could not be written: #[error.description]"/>
+                </on-error-continue>
+            </error-handler>
+        </try>
+    </sub-flow>
+
+    <!-- Called from the error handlers in rf-router: Splunk log, then a Slack message for server-side failures (5xx) only -->
+    <sub-flow name="sf-log-error">
+        <set-variable variableName="logType" value="ERROR" doc:name="logType"/>
+        <set-variable variableName="logStatus" value="#[vars.httpStatus]" doc:name="logStatus"/>
+        <set-variable variableName="logPayload" value="#['errorType=' ++ (error.errorType.namespace default '') ++ ':' ++ (error.errorType.identifier default '') ++ ', description=' ++ (error.description default '') ++ ', response: ' ++ (payload as String)]" doc:name="logPayload"/>
+        <flow-ref name="sf-log-event" doc:name="sf-log-event"/>
+        <choice doc:name="server-error">
+            <when expression="#[(vars.httpStatus default 500) as Number >= 500]">
+                <async doc:name="Async">
+                    <ee:transform doc:name="setting-notification-error-payload">
+                        <ee:message/>
+                        <ee:variables>
+                            <ee:set-variable variableName="notificationmsg"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "notification-type": ["SLACK"],
+    "api-name": Mule::p('notification.api-name'),
+    "code": p('application-msgs.code-500') default "",
+    "type": ((error.errorType.namespace default "") ++ ":" ++ (error.errorType.identifier default "")),
+    "message": "Failed to write message to queue " ++ (vars.queueName default "n/a") ++ " - messageId " ++ (vars.messageId default "n/a") ++ " - Error: " ++ (error.description default "")
+}]]></ee:set-variable>
+                        </ee:variables>
+                    </ee:transform>
+                    <flow-ref doc:name="sf-slack-notification" name="sf-slack-notification" />
+                </async>
+            </when>
+        </choice>
+    </sub-flow>
+</mule>
