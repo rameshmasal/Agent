@@ -13,7 +13,8 @@
     <!-- Returns vars.mqToken from the cache, or fetches and caches a new one -->
     <sub-flow name="sf-get-token">
         <os:retrieve doc:name="retrieve-token" key="mq-access-token" objectStore="mq-token-store" target="mqToken">
-            <os:default-value><![CDATA[#[null]]]></os:default-value>
+            <!-- a null default counts as 'no default' and raises KEY_NOT_FOUND, so use an empty string -->
+            <os:default-value><![CDATA[#['']]]></os:default-value>
         </os:retrieve>
         <choice doc:name="token-cached">
             <when expression="#[isEmpty(vars.mqToken)]">

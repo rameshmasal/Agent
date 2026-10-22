@@ -29,7 +29,12 @@
         <choice doc:name="token-rejected">
             <when expression="#[vars.mqStatus == 401]">
                 <logger level="WARN" doc:name="log-token-refresh" message="Anypoint MQ rejected the cached token; refreshing and retrying once"/>
-                <os:remove doc:name="clear-token" key="mq-access-token" objectStore="mq-token-store" />
+                <try doc:name="Try">
+                    <os:remove doc:name="clear-token" key="mq-access-token" objectStore="mq-token-store" />
+                    <error-handler>
+                        <on-error-continue type="OS:KEY_NOT_FOUND" enableNotifications="false" logException="false"/>
+                    </error-handler>
+                </try>
                 <flow-ref name="sf-get-token" doc:name="sf-get-token"/>
                 <flow-ref name="sf-mq-put" doc:name="sf-mq-put"/>
             </when>
