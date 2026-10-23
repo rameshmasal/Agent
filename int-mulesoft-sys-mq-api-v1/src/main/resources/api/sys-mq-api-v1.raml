@@ -1,0 +1,42 @@
+#%RAML 1.0
+title: sys-mq-api-v1
+version: v1.0
+documentation:
+  - title: MQ System API
+    content: >
+      Accepts any event, converts it to JSON and places it on an Anypoint MQ queue.
+      The queue name is taken from the request path. The API fetches and caches the
+      Anypoint access token, generates the message ID (UUID) and logs every request,
+      response and error to Splunk.
+
+uses:
+  lib: /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+# ─────────────────────────────────────────
+# MQ WRITE
+# ─────────────────────────────────────────
+/queue/write/{queueName}:
+  description: Place a message on the Anypoint MQ queue named in the path.
+  is: [lib.trackable, lib.client-credentials]
+  uriParameters:
+    queueName:
+      displayName: Queue Name
+      description: Anypoint MQ queue or exchange name
+      type: string
+      pattern: ^[A-Za-z0-9._-]{1,128}$
+      example: uat-test-mq
+  post:
+    description: >
+      Converts the request body to JSON and writes it to the queue. Returns 400 when the body
+      is empty or cannot be converted to valid JSON.
+    body:
+      application/json:
+        type: any
+        example: !include responses/examples/mq-write-request.json
+      text/plain:
+        type: any
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include responses/examples/mq-write-response.json

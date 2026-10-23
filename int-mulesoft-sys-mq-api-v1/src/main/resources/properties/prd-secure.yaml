@@ -1,0 +1,7 @@
+system-creds:
+  postman:
+    client-secret: "![h/hRZdrGLq+gUNJVjDo3yMo0uAEloS5xlmWdxEXzjJ0iX/jzp2n8SA==]"
+  deck:
+    client-secret: "![h/hRZdrGLq+gUNJVjDo3yMo0uAEloS5xlmWdxEXzjJ0iX/jzp2n8SA==]"
+  narvar:  
+    client-secret: "![fJjcEio+qMMmEqdLAEWR4BDMXNR60XWwp4hdfZ6HmVui8FVA6NI9OA==]"

@@ -1,0 +1,79 @@
+#%RAML 1.0 Library
+usage:
+
+types:
+  newell-error: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/error-datatype/1.0.4/error-datatype.raml
+  newell-success: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/response-datatype/1.0.0/response-datatype.raml
+  catalog-export-trigger: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/catalog-export-trigger/1.0.0/catalog-export-trigger.raml
+
+traits:
+  trackable: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/trackable-trait/1.0.1/trackable-trait.raml
+  client-credentials: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/client-credentials/1.0.5/client-credentials.raml
+  returns-200:
+    responses:
+      200:
+        body:
+          application/json:
+            type: newell-success
+            example: !include exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-200-exampleraml/1.0.0/returns-200-example.raml
+  returns-400:
+    responses:
+        400:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-400-exampleraml/1.0.7/returns-400-example.raml
+  returns-401:
+    responses:
+        401:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-401-exampleraml/1.0.6/returns-401-example.raml
+  returns-500:
+    responses:
+        500:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-500-exampleraml/1.0.6/returns-500-example.raml
+  
+  returns-501:
+    responses:
+        501:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-501-exampleraml/1.0.2/returns-501-example.raml
+
+  returns-404:
+    responses:
+        404:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-404-exampleraml/1.0.2/returns-404-example.raml
+  
+  returns-405:
+    responses:
+        405:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-405-exampleraml/1.0.2/returns-405-example.raml
+  
+  returns-406:
+    responses:
+        406:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-406-exampleraml/1.0.2/returns-406-example.raml
+
+  returns-415:
+    responses:
+        415:
+          body:
+            application/json:
+              type: newell-error
+              example: !include /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/returns-415-exampleraml/1.0.2/returns-415-example.raml

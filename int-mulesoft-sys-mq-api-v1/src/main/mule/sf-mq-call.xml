@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns:os="http://www.mulesoft.org/schema/mule/os"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+    http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- Returns vars.mqToken from the cache, or fetches and caches a new one -->
+    <sub-flow name="sf-get-token">
+        <choice doc:name="Choice" doc:id="e1fb58bb-b6fd-4c58-b20e-c6d7755933c0">
+			<when expression='#[vars.client_id == "${system.postman}"]'>
+				<logger level="INFO" doc:name="Logger-info" doc:id="a35d7852-d5f5-4c6c-a361-98349b7a4b16" message="Postman token generation flow" />
+				<ee:transform doc:name="set creds" doc:id="94ede6bc-ddd9-4e9b-98ed-e2d889480238">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="data"><![CDATA[output application/json
+---
+{
+    "client_id": "${system-creds.postman.client-id}",
+    "client_secret": "${secure::system-creds.postman.client-secret}",
+    "grant_type": "${anypoint-auth.grant-type}"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<set-variable value="postman-access-token" doc:name="set-objectstore-name" doc:id="32435d7f-0e9f-4dd5-b983-37c0f58ab713" variableName="mq-access-token"/>
+			</when>
+			<when expression='#[vars.client_id == "${system.deck}"]'>
+				<logger level="INFO" doc:name="Logger-info" doc:id="2e0039ed-042e-40cb-b4e9-d02edf63ee05" message="Deck token generation flow" />
+				<ee:transform doc:name="set creds" doc:id="0844c5cb-8968-4a34-b48d-aa0439d791f4">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="data"><![CDATA[output application/json
+---
+{
+    "client_id": "${system-creds.deck.client-id}",
+    "client_secret": "${secure::system-creds.deck.client-secret}",
+    "grant_type": "${anypoint-auth.grant-type}"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+				<set-variable value="deck-access-token" doc:name="set-objectstore-name" doc:id="7f4a9fad-0926-47f8-a6e2-37bb28aa0274" variableName="mq-access-token" />
+			</when>
+			<when expression='#[vars.client_id == "${system.narvar}"]'>
+				<logger level="INFO" doc:name="Logger-info" doc:id="f7423353-41e3-4b17-9538-2d6fb93934b7" message="Narvar token generation flow" />
+				<ee:transform doc:name="set creds" doc:id="22c65132-05e7-49bd-90e0-734e9d7a9d62">
+					<ee:message />
+					<ee:variables>
+						<ee:set-variable variableName="data"><![CDATA[output application/json
+---
+{
+    "client_id": "${system-creds.narvar.client-id}",
+    "client_secret": "${secure::system-creds.narvar.client-secret}",
+    "grant_type": "${anypoint-auth.grant-type}"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<set-variable value="narvar-access-token" doc:name="set-objectstore-name" doc:id="4db7b06e-ad57-414b-b2a3-c362f8752635" variableName="mq-access-token" />
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger-info" doc:id="172d7dc3-8790-4b3e-b7e6-b595a2d6fea3" message="Postman[DEFAULT] token generation flow" />
+				<ee:transform doc:name="set creds" doc:id="f446a53e-2f64-4df8-8c03-df257d84b54e">
+					<ee:message />
+					<ee:variables>
+						<ee:set-variable variableName="data"><![CDATA[output application/json
+---
+{
+    "client_id": "${system-creds.postman.client-id}",
+    "client_secret": "${secure::system-creds.postman.client-secret}",
+    "grant_type": "${anypoint-auth.grant-type}"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<set-variable value="postman-access-token" doc:name="set-objectstore-name" doc:id="99340d0a-b6ed-4d4b-b7b3-04462b219c00" variableName="mq-access-token" />
+			</otherwise>
+		</choice>
+		<os:retrieve doc:name="retrieve-token" key='#[vars."mq-access-token"]' objectStore="mq-token-store" target="mqToken">
+            <!-- a null default counts as 'no default' and raises KEY_NOT_FOUND, so use an empty string -->
+            <os:default-value><![CDATA[#['']]]></os:default-value>
+        </os:retrieve>
+        <choice doc:name="token-cached">
+            <when expression="#[isEmpty(vars.mqToken)]">
+                <flow-ref doc:name="sf-fetch-token" name="sf-fetch-token"/>
+            </when>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="sf-fetch-token">
+		<http:request doc:name="anypoint-token-request"
+            config-ref="anypoint-auth-configuration"
+            method="POST"
+            path="${anypoint-auth.path}"
+            target="tokenResponse"
+            targetValue="#[message]">
+            <http:body><![CDATA[#[vars.data]]]></http:body>
+            <http:headers><![CDATA[#[{"Content-Type": p('anypoint-auth.content-type')}]]]></http:headers>
+            <http:response-validator>
+                <http:success-status-code-validator values="100..599"/>
+            </http:response-validator>
+        </http:request>
+
+        <!-- a failed token request must stop the flow: never cache or use an empty token -->
+        <choice doc:name="token-status">
+            <when expression="#[vars.tokenResponse.attributes.statusCode != 200 or isEmpty(vars.tokenResponse.payload.access_token default '')]">
+                <logger level="ERROR" doc:name="log-token-failure" message="Anypoint token request failed with status #[vars.tokenResponse.attributes.statusCode]"/>
+                <raise-error doc:name="raise-token-failure" type="APP:TOKEN_FAILURE" description="${application-msgs.msg-token-failure}"/>
+            </when>
+        </choice>
+
+        <set-variable variableName="mqToken" value="#[vars.tokenResponse.payload.access_token]" doc:name="mqToken"/>
+        <os:store doc:name="store-token" key='#[vars."mq-access-token"]' objectStore="mq-token-store">
+            <os:value><![CDATA[#[vars.mqToken]]]></os:value>
+        </os:store>
+    
+</sub-flow>
+
+    <!-- PUT the envelope in the payload to the queue in vars.queueName using vars.messageId and vars.mqToken. Sets vars.mqResponse.
+         Statuses below 500 are returned by the request (no retry); 5xx, timeout and connectivity errors are retried with the same
+         messageId (idempotent PUT). The MQ status is then checked and anything but 2xx is raised as an error. -->
+    <sub-flow name="sf-mq-put">
+
+        <until-successful maxRetries="${anypoint-mq.retry.max-retries}" millisBetweenRetries="${anypoint-mq.retry.delay-ms}" doc:name="Until Successful">
+            <http:request doc:name="anypoint-mq-put"
+                config-ref="anypoint-mq-configuration"
+                method="PUT"
+                path="${anypoint-mq.base-path}/organizations/${anypoint-mq.org-id}/environments/${anypoint-mq.env-id}/destinations/{queueName}/messages/{messageId}"
+                target="mqResponse"
+                targetValue="#[message]">
+                <http:headers><![CDATA[#[{
+    "Authorization": p('anypoint-mq.auth-scheme') ++ " " ++ vars.mqToken,
+    "Content-Type": p('anypoint-mq.content-type')
+}]]]></http:headers>
+                <http:uri-params><![CDATA[#[{
+    "queueName": vars.queueName,
+    "messageId": vars.messageId
+}]]]></http:uri-params>
+                <http:response-validator>
+                    <http:success-status-code-validator values="200..499"/>
+                </http:response-validator>
+            </http:request>
+        </until-successful>
+
+        <choice doc:name="mq-status">
+            <when expression="#[vars.mqResponse.attributes.statusCode >= 200 and vars.mqResponse.attributes.statusCode &lt; 300]">
+                <logger level="DEBUG" doc:name="log-mq-accepted" message="Anypoint MQ accepted messageId=#[vars.messageId] with status #[vars.mqResponse.attributes.statusCode]"/>
+            </when>
+            <when expression="#[vars.mqResponse.attributes.statusCode == 401 or vars.mqResponse.attributes.statusCode == 403]">
+                <!-- our token was refused: drop it so the next request fetches a new one instead of reusing it until the TTL ends -->
+                <os:remove doc:name="evict-token" key='#[vars."mq-access-token"]' objectStore="mq-token-store" failIfNotPresent="false"/>
+                <logger level="ERROR" doc:name="log-mq-auth-failure" message="Anypoint MQ refused the access token with status #[vars.mqResponse.attributes.statusCode] for queue #[vars.queueName]"/>
+                <raise-error doc:name="raise-mq-auth-failure" type="APP:MQ_AUTH_FAILURE" description="${application-msgs.msg-mq-auth-failure}"/>
+            </when>
+            <when expression="#[vars.mqResponse.attributes.statusCode == 404]">
+                <raise-error doc:name="raise-queue-not-found" type="APP:QUEUE_NOT_FOUND" description="${application-msgs.msg-queue-not-found}"/>
+            </when>
+            <otherwise>
+                <logger level="ERROR" doc:name="log-mq-rejected" message="Anypoint MQ returned status #[vars.mqResponse.attributes.statusCode] for queue #[vars.queueName]"/>
+                <raise-error doc:name="raise-mq-rejected" type="APP:MQ_REJECTED" description="${application-msgs.msg-mq-unexpected-status}"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>

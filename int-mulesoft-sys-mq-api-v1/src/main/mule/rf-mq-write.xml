@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:os="http://www.mulesoft.org/schema/mule/os"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <flow name="rf-mq-write-details">
+        <!-- save inbound attributes before any outbound call overwrites them -->
+        <set-variable variableName="correlationId" value="#[correlationId]" doc:name="correlationId"/>
+        <set-variable variableName="queueName" value="#[attributes.uriParams.queueName]" doc:name="queueName"/>
+        <set-variable variableName="messageId" value="#[uuid()]" doc:name="messageId"/>
+        <ee:transform doc:name="set-payload" doc:id="fdd71560-49e1-4d88-8a5a-4bd80b038935">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	body:payload.^raw
+}]]></ee:set-payload>
+				</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="client_id" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.headers.client_id default ""
+]]></ee:set-variable>
+			</ee:variables>
+			</ee:transform>
+        <flow-ref name="sf-get-token" doc:name="sf-get-token"/>
+        <logger level="INFO" doc:name="log-info" doc:id="a2a64e4a-047c-4535-97f0-c27dee2e00ba" message="MQ token generated for Queue= #[vars.queueName]"/>
+		<flow-ref name="sf-mq-put" doc:name="sf-mq-put"/>
+
+        <logger level="INFO" doc:name="log-info" doc:id="ec44e692-b1ed-4ca1-bcf9-c7db4c50aa52" message="Message sent to queue- #[vars.queueName]"/>
+		<ee:transform doc:name="build-response">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/mq-write-response.dwl" />
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+		<logger level="INFO" doc:name="log-info" doc:id="df56a8bb-d987-49c5-b4f7-e202953ef6f4" message="Write flow completed."/>
+
+    
+</flow>
+
+</mule>
