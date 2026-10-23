@@ -151,7 +151,12 @@
             </when>
             <when expression="#[vars.mqResponse.attributes.statusCode == 401 or vars.mqResponse.attributes.statusCode == 403]">
                 <!-- our token was refused: drop it so the next request fetches a new one instead of reusing it until the TTL ends -->
-                <os:remove doc:name="evict-token" key='#[vars."mq-access-token"]' objectStore="mq-token-store" failIfNotPresent="false"/>
+                <try doc:name="evict-token">
+                    <os:remove doc:name="remove-token" key='#[vars."mq-access-token"]' objectStore="mq-token-store"/>
+                    <error-handler>
+                        <on-error-continue type="OS:KEY_NOT_FOUND" enableNotifications="false" logException="false"/>
+                    </error-handler>
+                </try>
                 <logger level="ERROR" doc:name="log-mq-auth-failure" message="Anypoint MQ refused the access token with status #[vars.mqResponse.attributes.statusCode] for queue #[vars.queueName]"/>
                 <raise-error doc:name="raise-mq-auth-failure" type="APP:MQ_AUTH_FAILURE" description="${application-msgs.msg-mq-auth-failure}"/>
             </when>
