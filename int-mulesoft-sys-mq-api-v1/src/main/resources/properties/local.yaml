@@ -2,7 +2,7 @@
 sys-mq-api:
   http-listener:
     port: "8081"
-    path: "/*"
+    path: "/api/*"
     timeout: "180000"
     idle-timeout: "180000"
     auto-discovery-id: "21250084"   # API Manager ID is only known after the API is registered; "0" is the Newell placeholder
