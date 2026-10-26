@@ -209,8 +209,5 @@ output application/json
     <flow name="get:\costing:prc-productdetails-api-v1-config">
         <flow-ref doc:name="rf-costing-details" doc:id="d9e0f1a2-b3c4-5678-def0-12345678abcd" name="rf-costing-details"/>
     </flow>
-    <flow name="post:\fgcollection:application\json:prc-productdetails-api-v1-config">
-        <flow-ref doc:name="rf-fgcollection" doc:id="aca080d3-72d2-4976-97e6-9e639d90fafe" name="rf-fgcollection"/>
-    </flow>
 
 </mule>
