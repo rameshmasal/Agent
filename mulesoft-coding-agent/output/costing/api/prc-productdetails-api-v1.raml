@@ -1,0 +1,225 @@
+#%RAML 1.0
+title: prc-productdetails-api-v1
+version: v1.0
+documentation:
+  - title: Product Details Process API
+    content: >
+      Synchronous process API to get product details from SAP/Windchill.
+      Routing is driven by product status — status=10 routes to Windchill,
+      status>10 routes to SAP.
+
+uses:
+  lib: /exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+traits:
+  responseCodes: !include fragments/traits/response-codes.raml
+
+# ─────────────────────────────────────────
+# 1. BASIC
+# ─────────────────────────────────────────
+/basic:
+  description: Get basic product details from SAP.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: Returns basic product data including status which drives routing.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/basic-response.json
+
+# ─────────────────────────────────────────
+# 2. ALT LANGUAGE
+# ─────────────────────────────────────────
+/descriptions:
+  description: Get product description in an alternate language.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: Returns product description, language code and full language name.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+      lang:
+        displayName: Language Code
+        description: ISO 2-letter language code (e.g. FR, DE, ES, ZH)
+        type: string
+        required: false
+        minLength: 2
+        maxLength: 2
+        example: "FR"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/alt-language-response.json
+
+# ─────────────────────────────────────────
+# 3. LOGISTICAL
+# ─────────────────────────────────────────
+/weightsandmeasures:
+  description: >
+    Get logistical product data. Routes to Windchill if status=10,
+    SAP if status>10.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: Returns logistical data from SAP or Windchill based on product status.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/logistical-response.json
+
+# ─────────────────────────────────────────
+# 4. CHARACTERISTICS
+# ─────────────────────────────────────────
+/characteristics:
+  description: Get product characteristics from SAP classification system.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: Returns product classification and characteristics data.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+      class:
+        displayName: Class
+        description: SAP classification class name
+        type: string
+        required: false
+        example: "Z_PAINTTYPE"
+      characteristic:
+        displayName: Characteristic
+        description: SAP characteristic name
+        type: string
+        required: false
+        example: "Z_PAINTTYPE"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/characteristics-response.json
+
+# ─────────────────────────────────────────
+# 5. PLANT
+# ─────────────────────────────────────────
+/plantInfo:
+  description: Get product plant data as an array from SAP.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: Returns product and plant information as array structures.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+      plantId:
+        displayName: Plant ID
+        description: SAP Plant ID to filter results
+        type: string
+        required: false
+        example: "1910"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/plant-response.json
+
+# ─────────────────────────────────────────
+# 6. SALES ORG
+# ─────────────────────────────────────────
+/salesOrg:
+  description: Get product sales organisation and distribution channel data.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: >
+      Returns sales org header data and header detail arrays including
+      distribution channel information.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+      salesOrg:
+        displayName: Sales Org ID
+        description: SAP Sales Organisation ID
+        type: string
+        required: false
+        example: "US72"
+      distributionChannel:
+        displayName: Distribution Channel ID
+        description: SAP Distribution Channel ID
+        type: string
+        required: false
+        example: "01"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/salesorg-response.json
+
+# ─────────────────────────────────────────
+# 7. COSTING
+# ─────────────────────────────────────────
+/costing:
+  description: Get product costing and valuation data from SAP.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  get:
+    description: >
+      Returns costing header data, plant list, and detailed costing information
+      including price control, valuation class, planned prices, and custom fields.
+      Uses RFC ZGLO_GET_PRODUCT_COSTING.
+    queryParameters:
+      productId:
+        displayName: Product ID
+        type: string
+        required: true
+        example: "30001"
+      plantId:
+        displayName: Plant ID
+        description: Optional SAP Plant ID to filter the plants array and return that plant's costing data
+        type: string
+        required: false
+        example: "1004"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/costing-response.json
+
+# ─────────────────────────────────────────
+# 8. FG COLLECTION (NIS / WINDCHILL)
+# ─────────────────────────────────────────
+/fgcollection:
+  description: Create or update FG Collection and FGs in Windchill via NIS service.
+  is: [lib.trackable, lib.client-credentials, responseCodes]
+  post:
+    description: >
+      Accepts FG Collection request from NIS team, transforms to SOAP
+      and calls Windchill createOrUpdateFGCollectionAndFGs operation.
+    body:
+      application/json:
+        example: !include responses/examples/fgcollection-request.json
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include responses/examples/fgcollection-response.json

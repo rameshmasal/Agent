@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Main flow — validates productId, then delegates to sub-flow
+         Endpoint: GET /costing?productId={id}&plantId={id}
+         RFC:      ZGLO_GET_PRODUCT_COSTING
+    ═══════════════════════════════════════════════════════════════ -->
+    <flow name="rf-costing-details" doc:id="c0571001-1001-1001-1001-c05710011001">
+
+        <set-variable value="#[correlationId]"
+            doc:name="correlationId" doc:id="c0571001-1001-1001-1001-c05710011002"
+            variableName="correlationId"/>
+
+        <ee:transform doc:name="get-params" doc:id="c0571001-1001-1001-1001-c05710011003">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="params"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams default {}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="validate-productId" doc:id="c0571001-1001-1001-1001-c05710011004">
+            <when expression='#[vars.params.productId != null and vars.params.productId != ""]'>
+                <logger level="INFO" doc:name="log-info" doc:id="c0571001-1001-1001-1001-c05710011005"
+                    message="Fetching costing details — productId=#[vars.params.productId] plantId=#[vars.params.plantId default 'ALL']"/>
+                <flow-ref doc:name="sf-costing-request" doc:id="c0571001-1001-1001-1001-c05710011006"
+                    name="sf-costing-request"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="log-info" doc:id="c0571001-1001-1001-1001-c05710011007"
+                    message="productId is missing."/>
+                <raise-error doc:name="bad-request" doc:id="c0571001-1001-1001-1001-c05710011008"
+                    type="APP:BAD_REQUEST" description="productId is required"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Sub-flow — builds SAP request, calls RFC, maps response
+    ═══════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-costing-request" doc:id="c0571002-1002-1002-1002-c05720021001">
+
+        <!-- Build SAP RFC request XML -->
+        <ee:transform doc:name="create-req" doc:id="c0571002-1002-1002-1002-c05720021002">
+            <ee:message>
+                <ee:set-payload resource="transformdata/sapnwl-costing-request.dwl"/>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="productId"><![CDATA[%dw 2.0
+output application/java
+---
+vars.params.productId default ""]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- Call SAP NWRFC system API -->
+        <flow-ref doc:name="sf-sys-sapnwl-call" doc:id="c0571002-1002-1002-1002-c05720021003"
+            name="sf-sys-sapnwl-call"/>
+
+        <!-- Convert SAP XML response to structured JSON -->
+        <ee:transform doc:name="convert-json" doc:id="c0571002-1002-1002-1002-c05720021004">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var sapRoot    = vars.sap_resp.body.ZGLO_GET_PRODUCT_COSTING
+var sapExport  = sapRoot.export
+var sapCosting = sapExport.EX_API_COSTING
+---
+{
+  export: {
+    EV_MATNR : sapExport.EV_MATNR,
+    EV_MAKTX : sapExport.EV_MAKTX,
+    EV_MSTAE : sapExport.EV_MSTAE,
+    EV_MTART : sapExport.EV_MTART,
+    EV_SPART : sapExport.EV_SPART,
+    EV_BUOM  : sapExport.EV_BUOM,
+    EV_ERSDA : sapExport.EV_ERSDA,
+    EV_LAEDA : sapExport.EV_LAEDA,
+    EX_API_COSTING: {
+      MATNR  : sapCosting.MATNR,
+      MAKTX  : sapCosting.MAKTX,
+      WERKS  : sapCosting.WERKS,
+      WERKSD : sapCosting.WERKSD,
+      MMSTA  : sapCosting.MMSTA,
+      MMSTAD : sapCosting.MMSTAD,
+      MMSTD  : sapCosting.MMSTD,
+      LOSGR  : sapCosting.LOSGR,
+      EKALR  : sapCosting.EKALR,
+      HKMAT  : sapCosting.HKMAT,
+      HRKFT  : sapCosting.HRKFT,
+      HRKFTD : sapCosting.HRKFTD,
+      KOSGR  : sapCosting.KOSGR,
+      KOSGRD : sapCosting.KOSGRD,
+      AWSLS  : sapCosting.AWSLS,
+      AWSLSD : sapCosting.AWSLSD,
+      PRCTR  : sapCosting.PRCTR,
+      PRCTRD : sapCosting.PRCTRD,
+      NCOST  : sapCosting.NCOST,
+      KZKUP  : sapCosting.KZKUP,
+      SCHGT  : sapCosting.SCHGT,
+      SOBSK  : sapCosting.SOBSK,
+      SOBSKD : sapCosting.SOBSKD,
+      ZPLP1  : sapCosting.ZPLP1,
+      ZPLD1  : sapCosting.ZPLD1,
+      ZPLP2  : sapCosting.ZPLP2,
+      ZPLD2  : sapCosting.ZPLD2,
+      ZPLP3  : sapCosting.ZPLP3,
+      ZPLD3  : sapCosting.ZPLD3,
+      BWPRS  : sapCosting.BWPRS,
+      BWPRH  : sapCosting.BWPRH,
+      WAERS  : sapCosting.WAERS,
+      BWTTY  : sapCosting.BWTTY,
+      BWTTYD : sapCosting.BWTTYD,
+      BKLAS  : sapCosting.BKLAS,
+      BKLASD : sapCosting.BKLASD,
+      VPRSV  : sapCosting.VPRSV,
+      VPRSVD : sapCosting.VPRSVD,
+      STPRS  : sapCosting.STPRS,
+      VERPR  : sapCosting.VERPR,
+      PEINH  : sapCosting.PEINH,
+      VMSTP  : sapCosting.VMSTP,
+      VMVER  : sapCosting.VMVER,
+      LAEPR  : sapCosting.LAEPR,
+      ZKPRS  : sapCosting.ZKPRS,
+      ZKDAT  : sapCosting.ZKDAT,
+      KALN1  : sapCosting.KALN1,
+      MLMAA  : sapCosting.MLMAA,
+      MLAST  : sapCosting.MLAST,
+      MLASTD : sapCosting.MLASTD,
+      ZZPRELIM: sapCosting.ZZPRELIM,
+      ZZFISCYR: sapCosting.ZZFISCYR,
+      ZZCURPER: sapCosting.ZZCURPER
+    }
+  },
+  tables: {
+    ET_PLANTS: sapRoot.tables.ET_PLANTS.*row map (row) -> {
+      MATNR : row.MATNR,
+      WERKS : row.WERKS,
+      WERKSD: row.WERKSD,
+      MMSTA : row.MMSTA,
+      MMSTAD: row.MMSTAD,
+      MMSTD : row.MMSTD
+    }
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- Check if SAP returned a product -->
+        <ee:transform doc:name="check-no-row" doc:id="c0571002-1002-1002-1002-c05720021005">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="no_row"><![CDATA[%dw 2.0
+output application/java
+---
+isEmpty(payload.export.EV_MATNR default "")]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="check-product-found" doc:id="c0571002-1002-1002-1002-c05720021006">
+            <when expression="#[vars.no_row == true]">
+                <logger level="INFO" doc:name="log-not-found" doc:id="c0571002-1002-1002-1002-c05720021007"
+                    message="No product found for productId=#[vars.params.productId]"/>
+                <ee:transform doc:name="build-404" doc:id="c0571002-1002-1002-1002-c05720021008">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":          "404",
+        "status":        "NOT_FOUND",
+        "message":       "Product not found for the given productId.",
+        "correlationId": vars.correlationId default "",
+        "timestamp":     now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <set-variable value="404" doc:name="httpStatus"
+                    doc:id="c0571002-1002-1002-1002-c05720021009" variableName="httpStatus"/>
+                <raise-error doc:name="not-found" doc:id="c0571002-1002-1002-1002-c0572002100a"
+                    type="APP:ERROR" description="Product not found"/>
+            </when>
+            <otherwise>
+                <!-- Apply final JSON mapping -->
+                <ee:transform doc:name="data-mapping" doc:id="c0571002-1002-1002-1002-c0572002100b">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/costing-mapping.dwl"/>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+
+    </sub-flow>
+
+</mule>
