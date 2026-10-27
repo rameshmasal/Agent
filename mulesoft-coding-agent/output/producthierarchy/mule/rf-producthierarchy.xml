@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+    http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Main flow — validates productHierarchyId, delegates to sub-flow
+         Endpoint: GET /producthierarchy?productHierarchyId={id}
+         RFC:      ZGLO_GET_PRODUCT_HIERARCHY
+    ═══════════════════════════════════════════════════════════════ -->
+    <flow name="rf-producthierarchy-details" doc:id="ph571001-1001-1001-1001-ph5710011001">
+
+        <set-variable value="#[correlationId]"
+            doc:name="correlationId" doc:id="ph571001-1001-1001-1001-ph5710011002"
+            variableName="correlationId"/>
+
+        <ee:transform doc:name="get-params" doc:id="ph571001-1001-1001-1001-ph5710011003">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="params"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams default {}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="validate-productHierarchyId" doc:id="ph571001-1001-1001-1001-ph5710011004">
+            <when expression='#[vars.params.productHierarchyId != null and vars.params.productHierarchyId != ""]'>
+                <logger level="INFO" doc:name="log-info" doc:id="ph571001-1001-1001-1001-ph5710011005"
+                    message="Fetching product hierarchy — productHierarchyId=#[vars.params.productHierarchyId]"/>
+                <flow-ref doc:name="sf-producthierarchy-request" doc:id="ph571001-1001-1001-1001-ph5710011006"
+                    name="sf-producthierarchy-request"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="log-info" doc:id="ph571001-1001-1001-1001-ph5710011007"
+                    message="productHierarchyId is missing."/>
+                <raise-error doc:name="bad-request" doc:id="ph571001-1001-1001-1001-ph5710011008"
+                    type="APP:BAD_REQUEST" description="productHierarchyId is required"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Sub-flow — builds SAP request, calls RFC, maps response
+    ═══════════════════════════════════════════════════════════════ -->
+    <sub-flow name="sf-producthierarchy-request" doc:id="ph571002-1002-1002-1002-ph5720021001">
+
+        <!-- Build SAP RFC request XML -->
+        <ee:transform doc:name="create-req" doc:id="ph571002-1002-1002-1002-ph5720021002">
+            <ee:message>
+                <ee:set-payload resource="transformdata/sapnwl-producthierarchy-request.dwl"/>
+            </ee:message>
+        </ee:transform>
+
+        <!-- Call SAP NWRFC system API -->
+        <flow-ref doc:name="sf-sys-sapnwl-call" doc:id="ph571002-1002-1002-1002-ph5720021003"
+            name="sf-sys-sapnwl-call"/>
+
+        <!-- Convert SAP XML response to structured JSON -->
+        <ee:transform doc:name="convert-json" doc:id="ph571002-1002-1002-1002-ph5720021004">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var sapExport = vars.sap_resp.body.ZGLO_GET_PRODUCT_HIERARCHY.export
+---
+{
+  export: {
+    PRODH: sapExport.PRODH,
+    VTEXT: sapExport.VTEXT,
+    STUFE: sapExport.STUFE,
+    STUFT: sapExport.STUFT
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- Check if SAP returned a hierarchy record -->
+        <ee:transform doc:name="check-no-row" doc:id="ph571002-1002-1002-1002-ph5720021005">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="no_row"><![CDATA[%dw 2.0
+output application/java
+---
+isEmpty(payload.export.PRODH default "")]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <choice doc:name="check-hierarchy-found" doc:id="ph571002-1002-1002-1002-ph5720021006">
+            <when expression="#[vars.no_row == true]">
+                <logger level="INFO" doc:name="log-not-found" doc:id="ph571002-1002-1002-1002-ph5720021007"
+                    message="No hierarchy found for productHierarchyId=#[vars.params.productHierarchyId]"/>
+                <ee:transform doc:name="build-404" doc:id="ph571002-1002-1002-1002-ph5720021008">
+                    <ee:variables>
+                        <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "error": {
+        "code":          "404",
+        "status":        "NOT_FOUND",
+        "message":       "Product hierarchy not found for the given productHierarchyId.",
+        "correlationId": vars.correlationId default "",
+        "timestamp":     now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+    }
+}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <set-variable value="404" doc:name="httpStatus"
+                    doc:id="ph571002-1002-1002-1002-ph5720021009" variableName="httpStatus"/>
+                <raise-error doc:name="not-found" doc:id="ph571002-1002-1002-1002-ph572002100a"
+                    type="APP:ERROR" description="Product hierarchy not found"/>
+            </when>
+            <otherwise>
+                <!-- Apply final JSON mapping -->
+                <ee:transform doc:name="data-mapping" doc:id="ph571002-1002-1002-1002-ph572002100b">
+                    <ee:message>
+                        <ee:set-payload resource="transformdata/producthierarchy-mapping.dwl"/>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+
+    </sub-flow>
+
+</mule>
