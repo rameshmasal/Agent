@@ -1,6 +1,32 @@
-{
-  "productHierarchyId": "401016005000400005",
-  "productHierarchyDesc": "ROTARY CARD FILE",
-  "hierarchyLevelId": "5",
-  "hierarchyLevelDesc": "Product Line"
-}
+[
+  {
+    "productHierarchyId": "908",
+    "productHierarchyDesc": "Process Solutions",
+    "hierarchyLevelId": "1",
+    "hierarchyLevelDesc": "Reporting Unit"
+  },
+  {
+    "productHierarchyId": "908001",
+    "productHierarchyDesc": "Zinc",
+    "hierarchyLevelId": "2",
+    "hierarchyLevelDesc": "Brand"
+  },
+  {
+    "productHierarchyId": "908001011",
+    "productHierarchyDesc": "Zinc Coinage",
+    "hierarchyLevelId": "3",
+    "hierarchyLevelDesc": "Product Category"
+  },
+  {
+    "productHierarchyId": "9080010110001",
+    "productHierarchyDesc": "Zinc",
+    "hierarchyLevelId": "4",
+    "hierarchyLevelDesc": "Product Family"
+  },
+  {
+    "productHierarchyId": "908001011000100001",
+    "productHierarchyDesc": "Open Stock",
+    "hierarchyLevelId": "5",
+    "hierarchyLevelDesc": "Product Line"
+  }
+]

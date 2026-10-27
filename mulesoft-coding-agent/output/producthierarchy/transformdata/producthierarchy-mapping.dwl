@@ -1,10 +1,10 @@
 %dw 2.0
 output application/json
-var exp = payload.export
+var allRows = payload.tables.ET_PRODUCT_HIERARCHY
 ---
-{
-  productHierarchyId  : exp.PRODH,
-  productHierarchyDesc: exp.VTEXT,
-  hierarchyLevelId    : exp.STUFE,
-  hierarchyLevelDesc  : exp.STUFT
+allRows map (row) -> {
+  productHierarchyId  : row.PRODH,
+  productHierarchyDesc: row.VTEXT,
+  hierarchyLevelId    : row.STUFE,
+  hierarchyLevelDesc  : row.STUFT
 }

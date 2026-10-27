@@ -10,7 +10,6 @@
          Main flow — validates productHierarchyId, delegates to sub-flow
          Endpoint: GET /producthierarchy?productHierarchyId={id}
          RFC:      ZGLO_GET_PRODUCT_HIERARCHY
-         Note:     RFC returns full hierarchy table; we filter by PRODH
     ═══════════════════════════════════════════════════════════════ -->
     <flow name="rf-producthierarchy-details" doc:id="ph571001-1001-1001-1001-ph5710011001">
 
@@ -46,7 +45,7 @@ attributes.queryParams default {}]]></ee:set-variable>
     </flow>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Sub-flow — builds SAP request, calls RFC, filters table, maps response
+         Sub-flow — builds SAP request, calls RFC, maps all rows
     ═══════════════════════════════════════════════════════════════ -->
     <sub-flow name="sf-producthierarchy-request" doc:id="ph571002-1002-1002-1002-ph5720021001">
 
@@ -61,40 +60,41 @@ attributes.queryParams default {}]]></ee:set-variable>
         <flow-ref doc:name="sf-sys-sapnwl-call" doc:id="ph571002-1002-1002-1002-ph5720021003"
             name="sf-sys-sapnwl-call"/>
 
-        <!-- Filter ET_PRODUCT_HIERARCHY table rows by productHierarchyId (PRODH) -->
-        <ee:transform doc:name="filter-row" doc:id="ph571002-1002-1002-1002-ph5720021004">
+        <!-- Convert SAP XML response — extract table rows -->
+        <ee:transform doc:name="convert-json" doc:id="ph571002-1002-1002-1002-ph5720021004">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
-var allRows    = vars.sap_resp.body.ZGLO_GET_PRODUCT_HIERARCHY.export.ET_PRODUCT_HIERARCHY.*row
-var matchedRow = (allRows filter ((row) -> (row.PRODH as String) == vars.params.productHierarchyId))[0] default {}
+var sapRoot = vars.sap_resp.body.ZGLO_GET_PRODUCT_HIERARCHY
 ---
 {
-  export: {
-    PRODH: matchedRow.PRODH,
-    VTEXT: matchedRow.VTEXT,
-    STUFE: matchedRow.STUFE,
-    STUFT: matchedRow.STUFT
+  tables: {
+    ET_PRODUCT_HIERARCHY: sapRoot.export.ET_PRODUCT_HIERARCHY.*row map (row) -> {
+      PRODH: row.PRODH,
+      VTEXT: row.VTEXT,
+      STUFE: row.STUFE,
+      STUFT: row.STUFT
+    }
   }
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
 
-        <!-- Check if a matching row was found -->
+        <!-- Check if SAP returned any rows -->
         <ee:transform doc:name="check-no-row" doc:id="ph571002-1002-1002-1002-ph5720021005">
             <ee:message/>
             <ee:variables>
                 <ee:set-variable variableName="no_row"><![CDATA[%dw 2.0
 output application/java
 ---
-isEmpty(payload.export.PRODH default "")]]></ee:set-variable>
+isEmpty(payload.tables.ET_PRODUCT_HIERARCHY default [])]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
 
-        <choice doc:name="check-hierarchy-found" doc:id="ph571002-1002-1002-1002-ph5720021006">
+        <choice doc:name="check-rows-found" doc:id="ph571002-1002-1002-1002-ph5720021006">
             <when expression="#[vars.no_row == true]">
                 <logger level="INFO" doc:name="log-not-found" doc:id="ph571002-1002-1002-1002-ph5720021007"
-                    message="No hierarchy found for productHierarchyId=#[vars.params.productHierarchyId]"/>
+                    message="No hierarchy rows returned for productHierarchyId=#[vars.params.productHierarchyId]"/>
                 <ee:transform doc:name="build-404" doc:id="ph571002-1002-1002-1002-ph5720021008">
                     <ee:variables>
                         <ee:set-variable variableName="app_error"><![CDATA[%dw 2.0
@@ -117,7 +117,7 @@ output application/json
                     type="APP:ERROR" description="Product hierarchy not found"/>
             </when>
             <otherwise>
-                <!-- Apply final JSON mapping -->
+                <!-- Map all rows to API response -->
                 <ee:transform doc:name="data-mapping" doc:id="ph571002-1002-1002-1002-ph572002100b">
                     <ee:message>
                         <ee:set-payload resource="transformdata/producthierarchy-mapping.dwl"/>
