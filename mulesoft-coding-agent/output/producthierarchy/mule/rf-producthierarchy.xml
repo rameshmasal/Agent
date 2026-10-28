@@ -27,20 +27,10 @@ attributes.queryParams default {}]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
 
-        <choice doc:name="validate-productHierarchyId" doc:id="ph571001-1001-1001-1001-ph5710011004">
-            <when expression='#[vars.params.productHierarchyId != null and vars.params.productHierarchyId != ""]'>
-                <logger level="INFO" doc:name="log-info" doc:id="ph571001-1001-1001-1001-ph5710011005"
-                    message="Fetching product hierarchy — productHierarchyId=#[vars.params.productHierarchyId]"/>
-                <flow-ref doc:name="sf-producthierarchy-request" doc:id="ph571001-1001-1001-1001-ph5710011006"
-                    name="sf-producthierarchy-request"/>
-            </when>
-            <otherwise>
-                <logger level="INFO" doc:name="log-info" doc:id="ph571001-1001-1001-1001-ph5710011007"
-                    message="productHierarchyId is missing."/>
-                <raise-error doc:name="bad-request" doc:id="ph571001-1001-1001-1001-ph5710011008"
-                    type="APP:BAD_REQUEST" description="productHierarchyId is required"/>
-            </otherwise>
-        </choice>
+        <logger level="INFO" doc:name="log-info" doc:id="ph571001-1001-1001-1001-ph5710011005"
+            message="Fetching product hierarchy — productHierarchyId=#[vars.params.productHierarchyId default 'ALL']"/>
+        <flow-ref doc:name="sf-producthierarchy-request" doc:id="ph571001-1001-1001-1001-ph5710011006"
+            name="sf-producthierarchy-request"/>
 
     </flow>
 
