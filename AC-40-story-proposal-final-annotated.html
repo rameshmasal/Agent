@@ -1,0 +1,276 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AC 40: Final Update</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout copied from the AC 23 proposal. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#17202b; --muted:#5a6778; --line:#dde2ea; --soft:#eef1f5;
+  --accent:#1d5c7a; --accent-soft:#e3eef4;
+  --add:#2e7d4f; --add-soft:#e4f3ea; --chg:#9a5b00; --chg-soft:#fdf1dc; --open:#2f5aa8; --open-soft:#e6edf9; --keep:#6b7280; --keep-soft:#eceef1; --crit:#b3261e; --crit-soft:#fbe9e7;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif; --f-body:"Public Sans","Segoe UI",Arial,sans-serif; --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171e; --panel:#1a212b; --fg:#e7ecf2; --muted:#9aa8b8; --line:#2c3643; --soft:#212a35;
+  --accent:#7cc0de; --accent-soft:#1f3442;
+  --add:#7fcf9d; --add-soft:#1b3326; --chg:#f0b35a; --chg-soft:#3a2b14; --open:#8fb0ee; --open-soft:#1f2a40; --keep:#a3abb6; --keep-soft:#262d37; --crit:#f2877e; --crit-soft:#3a1f1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171e; --panel:#1a212b; --fg:#e7ecf2; --muted:#9aa8b8; --line:#2c3643; --soft:#212a35;
+  --accent:#7cc0de; --accent-soft:#1f3442;
+  --add:#7fcf9d; --add-soft:#1b3326; --chg:#f0b35a; --chg-soft:#3a2b14; --open:#8fb0ee; --open-soft:#1f2a40; --keep:#a3abb6; --keep-soft:#262d37; --crit:#f2877e; --crit-soft:#3a1f1d; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14.5px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 64px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,38px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+h4{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:75ch;margin:8px 0 0}
+a{color:var(--accent)}
+code,.key{font-family:var(--f-mono);font-size:12.5px}
+code{background:var(--soft);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+header{display:grid;gap:6px;margin-bottom:20px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;margin-top:6px}
+section{margin-top:34px;display:grid;gap:14px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px}
+.note p{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);align-items:center}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:1px 7px;white-space:nowrap;font-family:var(--f-body)}
+.t-add{background:var(--add-soft);color:var(--add)} .t-chg{background:var(--chg-soft);color:var(--chg)} .t-open{background:var(--open-soft);color:var(--open)} .t-keep{background:var(--keep-soft);color:var(--keep)} .t-guard{background:var(--accent-soft);color:var(--accent)} .t-new{background:var(--accent-soft);color:var(--accent)} .t-fold{background:var(--keep-soft);color:var(--fg)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:var(--soft);color:var(--muted);white-space:nowrap}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:5px 10px;font-size:13px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);outline:none}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-top:1px solid var(--line)}
+th{background:var(--soft);border-top:none;font-size:12px;letter-spacing:.03em;color:var(--muted);font-weight:600}
+td:first-child{white-space:nowrap;font-family:var(--f-mono);font-size:12.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.chead{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chead .key{color:var(--accent);font-weight:500;font-size:14px}
+.chead .sub{flex-basis:100%;color:var(--muted);font-size:13.5px;margin:0}
+.cbody{display:grid;gap:0}
+.band{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:11px 16px;border-top:1px solid var(--line)}
+.band:first-child{border-top:none}
+.band>div{min-width:0}
+.band ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.band p{margin:0}
+.band .lbl{padding-top:2px}
+.cur{color:var(--muted)}
+.cur::before{content:"Current: ";font-weight:600;color:var(--fg)}
+.prop::before{content:"Proposed: ";font-weight:600;color:var(--chg)}
+.chg-item{display:grid;gap:3px}
+.tier{font-weight:600;font-size:12px;color:var(--muted);margin-top:4px}
+.story-stmt{font-style:italic}
+@media (max-width:640px){.band{grid-template-columns:1fr;gap:4px}}
+.ask{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:1px 6px;background:var(--crit-soft);color:var(--crit);margin-right:4px}
+table.matrix{min-width:1080px}
+table.matrix td:first-child{white-space:nowrap}
+tr.grp td{background:var(--soft);font-family:var(--f-body);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+/* AC-15 proposal additions */
+table.outcomes td:first-child{white-space:normal;font-family:var(--f-body);font-size:13.5px}
+table.outcomes{min-width:900px;table-layout:fixed}
+table.outcomes th:nth-child(1){width:22%} table.outcomes th:nth-child(2){width:18%} table.outcomes th:nth-child(3){width:10%} table.outcomes th:nth-child(4){width:12%}
+table.outcomes code{overflow-wrap:normal;word-break:normal}
+ol.acs{margin:0;padding-left:22px;display:grid;gap:7px}
+ol.acs li::marker{color:var(--muted);font-family:var(--f-mono);font-size:12px}
+pre.orch{margin:0;background:var(--soft);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--f-mono);font-size:12.5px;line-height:1.6}
+.cbody>.para{padding:11px 16px;border-top:1px solid var(--line)}
+.cbody>.para:first-child{border-top:none}
+.cbody>.para p{margin:0}
+.band{grid-template-columns:150px 1fr}
+.band .lbl .tag{white-space:normal;line-height:1.35}
+@media (max-width:640px){.band{grid-template-columns:1fr}}
+.band.wide{grid-template-columns:1fr;gap:8px}
+.storytitle{margin:4px 0 6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-family:var(--f-display);font-size:17px;font-weight:700}
+table.outcomes th:nth-child(1){width:21%} table.outcomes th:nth-child(2){width:15%} table.outcomes th:nth-child(3){width:9%} table.outcomes th:nth-child(4){width:18%}
+
+/* change highlighting */
+ol.acs li.is-new{background:var(--add-soft);border-radius:6px;padding:4px 8px}
+ol.acs li.is-upd{background:var(--chg-soft);border-radius:6px;padding:4px 8px}
+ol.acs li .tag{margin-right:6px;vertical-align:1px}
+.changelegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted);margin-top:4px}
+
+/* internal notes */
+.why{margin-top:8px;padding:8px 10px;border-left:3px solid var(--line);background:var(--panel);border-radius:0 6px 6px 0;display:grid;gap:5px;font-size:13px;color:var(--fg)}
+li.is-new .why{border-left-color:var(--add)} li.is-upd .why{border-left-color:var(--chg)}
+.why p{margin:0} .why b{font-weight:600}
+.why .orig{color:var(--muted)}
+.tag.p-high{background:var(--crit-soft);color:var(--crit)} .tag.p-medium{background:var(--open-soft);color:var(--open)} .tag.p-low{background:var(--keep-soft);color:var(--keep)}
+.priolegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted)}
+.tag.code{background:transparent;border:1px solid currentColor;padding:0 6px;margin-right:6px}
+.c-done{color:var(--add)} .c-part{color:var(--chg)} .c-none{color:var(--crit)} .c-ver{color:var(--open)}
+.codelegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted)}
+/* challenged lines */
+.tag.t-chal{background:var(--crit-soft);color:var(--crit)}
+ol.acs li.is-chal{background:var(--crit-soft);border-radius:6px;padding:4px 8px}
+li.is-chal .why{border-left-color:var(--crit)}
+</style>
+</head><body><div class="wrap">
+<header>
+  <h1>AC 40: Final Update, annotated</h1>
+  <p class="storytitle"><span class="eyebrow">Story title</span><span>Google UCP | Order Lifecycle API | Get Order Mulesoft Endpoint</span></p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#description">Description</a>
+    <a href="#ac">Acceptance Criteria</a>
+    <a href="#tests">Test Scenarios</a>
+    <a href="#arch">Architectural Solution</a>
+    <a href="#impl">Implementation details</a>
+    <a href="#open">Open questions</a>
+  </nav>
+  <div class="changelegend"><span><span class="tag t-add">New</span> added in this proposal</span><span><span class="tag t-chg">Updated</span> existing Jira line, changed (strike-through = removed, bold = added)</span><span>Unmarked: existing Jira line, unchanged</span></div>
+  <div class="priolegend"><span><span class="tag p-high">High</span> launch blocker, spec MUST, or wrong data returned to Google</span><span><span class="tag p-medium">Medium</span> shopper-visible correctness, spec SHOULD, operational risk</span><span><span class="tag p-low">Low</span> polish, edge case, or documents existing behaviour</span></div>
+  <div class="codelegend"><span><span class="tag code c-done">Code: Implemented</span> in place, MUnit passing</span><span><span class="tag code c-part">Code: Partial</span> partly in place</span><span><span class="tag code c-none">Code: Not implemented</span> not in the code yet</span><span><span class="tag code c-ver">Code: To verify</span> needs a live test or gateway confirmation</span><span>Code status as of the updated <code>int-mulesoft-prc-acorderstatus-api-v1</code> build, with 8 MUnit tests passing locally. Gateway behaviour is as reported by the team and is not checked here. Spec references are to UCP <code>2026-04-08</code>.</span></div>
+</header>
+
+<section id="description">
+  <h2>Description</h2>
+  <p class="lede">Two edits to the Description field. Everything not listed stands as written.</p>
+  <article class="card">
+    <div class="cbody">
+      <div class="para"><p class="story-stmt"><b>User story:</b> <b>As</b> Google UCP (the API consumer), <b>I want</b> to call <code>GET /orders/{id}</code>, <b>So that</b> I can retrieve the latest snapshot of an order's status on demand.</p></div>
+
+      <div class="band wide"><div class="lbl"><span class="tag t-chg">Edit 1 — what the endpoint returns, and where it comes from</span></div><div>
+        <div class="chg-item">
+          <p class="cur">Develop a MuleSoft API that retrieves an order from the backend order system and uses DataWeave to transform it into a UCP-compliant current-state response.</p>
+          <p class="prop">Develop a MuleSoft API that returns the order's current-state snapshot: <b>the full UCP order entity most recently sent to Google by the order-lifecycle webhooks (AC-23, AC-24, AC-25, AC-35, AC-38), stored in <code>ucp_order_latest_status</code> and looked up by order id and brand through the Postgres System API.</b></p>
+        </div>
+        <p style="margin-top:6px">UCP says <i>"The same schema is used for both synchronous retrieval … and asynchronous event delivery"</i>, so the stored webhook payload already is the Get Order response, with no second mapping to keep in step. The response is therefore never fresher than the last webhook (AC 4), and an order has no stored snapshot until its Order Created event has been processed (AC 9).</p>
+      </div></div>
+
+      <div class="band wide"><div class="lbl"><span class="tag t-chg">Edit 2 — pin the spec version</span></div><div>
+        <div class="chg-item">
+          <p class="cur">Implement the endpoint according to the UCP Get Order REST specification (<code>ucp.dev/latest/specification/shopping/order/rest/#get-order</code>).</p>
+          <p class="prop">Implement the endpoint according to the UCP Get Order REST specification, <b>version 2026-04-08</b> (<code>https://ucp.dev/2026-04-08/specification/order-rest/#get-order</code>). <b>The links in the Acceptance Criteria point to <code>ucp.dev/latest</code>; read them at 2026-04-08.</b></p>
+        </div>
+        <p style="margin-top:6px"><code>latest</code> now serves version 2026-08-25, which moved these pages to <code>shopping/order/…</code> and added an optional <code>policies[]</code> field. Get Order itself is unchanged, but the rest of the integration, and the <code>ucp.version</code> this endpoint returns, is 2026-04-08.</p>
+      </div></div>
+
+      <div class="band"><div class="lbl"><span class="tag t-keep">Stands as written</span></div><div><p>"Include request validation, authentication, order-level authorization, backend integration, response mapping, error handling, and request tracing."</p></div></div>
+
+      <div class="band"><div class="lbl"><span class="tag t-open">Status</span></div><div><p>The code now matches the criteria: the endpoint returns the stored UCP order entity scoped by brand, answers misses with the UCP <code>not_found</code> envelope, returns 503 on a backend failure, and logs only id, status, brand and site. 8 MUnit tests pass and the contract is published to Exchange. Still to confirm in QA: the 503 with a forced database failure, and the end-to-end calls through the gateways for scenarios 1, 8 and 11.</p></div></div>
+    </div>
+  </article>
+</section>
+
+<section id="ac">
+  <h2>Acceptance Criteria</h2>
+  <p class="lede">The seven existing criteria keep their number and order, and each carries a text edit (a strike-through is removed text, bold is added). Two new criteria are appended as 8&ndash;9.</p>
+  <article class="card">
+    <div class="cbody"><div class="para">
+<ol class="acs">
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-high">High</span><span class="tag code c-ver">Code: To verify</span>Expose <code>GET /orders/{id}</code> with a required string order ID. <s>Validate required <code>Request-Id</code> and <code>UCP-Agent</code> headers; the latter must contain a profile URL ending in <code>/.well-known/ucp</code> using RFC 8941 dictionary syntax.</s> Serve the endpoint over HTTPS with TLS 1.3 or higher. <b>The <code>Request-Id</code> and <code>UCP-Agent</code> headers are not validated by this API or its gateway.</b> <a href="https://ucp.dev/latest/specification/shopping/order/rest/#http-headers">REST requirements</a><div class="why"><p><b>What changed and why:</b> The sentence that required <code>Request-Id</code> and <code>UCP-Agent</code> validation (the latter as an RFC 8941 profile URL ending in <code>/.well-known/ucp</code>) is replaced by a statement that they are not validated. Decision: the brand gateways are called with <code>Authorization</code> only and do not check them. UCP lists both headers as required, but Google sends them anyway, so ignoring them breaks nothing.</p><p><b>Where it is met:</b> each brand's Flex Gateway terminates TLS 1.3 and rewrites <code>GET /orders/{id}</code> to the API's <code>GET /order/{orderId}</code>. The API itself listens on plain HTTP behind the gateway, so test path and TLS through the gateway.</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-high">High</span><span class="tag code c-ver">Code: To verify</span>Request must include a valid OAuth JWT bearer token; unauthenticated or invalid-token requests are rejected with <code>401 Unauthorized</code>. <b>Token validation sits on each brand's Flex Gateway (AC-39), which also sets the brand (AC 8); test it through the gateway, not against the API directly.</b><div class="why"><p><b>What changed and why:</b> One sentence added. The API has no JWT check of its own: its RAML applies the Anypoint <code>client-credentials</code> trait, which the gateway satisfies with its own credentials. Tested directly against the API this criterion would fail for the wrong reason.</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-high">High</span><span class="tag code c-done">Code: Implemented</span>For an existing<s>, accessible</s> order, return HTTP <code>200</code> with <code>Content-Type: application/json</code>. Include required fields: <code>ucp</code>, <code>id</code>, <code>checkout_id</code>, <code>permalink_url</code>, <code>line_items</code>, <code>fulfillment</code>, <code>currency</code>, and <code>totals</code>. <s>Map optional fields when available and permitted.</s> <b>Return the stored snapshot's fields as they are.</b> Currency must match the originating checkout. <a href="https://ucp.dev/latest/specification/shopping/order/rest/#output-schema">Response contract</a><div class="why"><p><b>What changed and why:</b> "accessible" is dropped (an order of the other brand is now simply not found, see AC 5), and "Map optional fields" becomes "Return the stored snapshot's fields as they are", because the API does no mapping: it returns the payload last sent to Google. The required list matches the 2026-04-08 order schema.</p><p><b>Inherited from the lifecycle stories:</b> <code>checkout_id</code> is dropped from the payload when the checkout row has a null <code>ucp_session_id</code> (AC-23 AC 2), and <code>permalink_url</code> uses a hard-coded path (AC-23 TS 5).</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-high">High</span><span class="tag code c-done">Code: Implemented</span><s>Return the full latest order snapshot, including all historical line items, current quantities and statuses, fulfillment expectations and events, and available adjustments. Preserve monetary amounts in the currency’s minor units and signed adjustment values.</s> <b>Return the order snapshot as stored in <code>ucp_order_latest_status</code>, without changing it. Its completeness and ordering are the responsibility of the order-lifecycle stories (AC-23, AC-24, AC-25, AC-35, AC-38).</b> <a href="https://ucp.dev/latest/specification/shopping/order/">Order data model</a><div class="why"><p><b>What changed and why:</b> The line is replaced. This API only reads the stored row and returns it, so it cannot make the snapshot more complete or decide ordering. Completeness, minor-unit amounts and signed adjustments are the lifecycle stories' responsibility.</p><p><b>Known gaps in the lifecycle app:</b> the latest-status row is upserted on <code>order_id</code> with no ordering check (<code>sf-common-subflows.xml</code> line 234), so a late Shipped event can replace a Delivered snapshot; and the Shipped and Cancelled payloads leave out earlier events or adjustments (AC-24 AC 13, AC-25 AC 6, AC-35 AC 20). Fixing these fixes this endpoint too.</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-high">High</span><span class="tag code c-done">Code: Implemented</span>For missing<s> or inaccessible</s> orders, <b>an order of the other brand, or an order whose stored snapshot is empty,</b> return the documented HTTP <code>200</code> business-error envelope with <code>ucp.status: "error"</code>, <s>and an error message containing <code>not_found</code> or <code>unauthorized</code>, respectively, with severity <code>unrecoverable</code></s> <b>a message with code <code>not_found</code> and severity <code>unrecoverable</code></b>. <b>Do not return HTTP 404.</b> <a href="https://ucp.dev/latest/specification/shopping/order/rest/#example">Error examples</a><div class="why"><p><b>What changed and why:</b> Decision Q-40-02: an order of the other brand returns <code>not_found</code>, not <code>unauthorized</code>. The lookup is already scoped by the brand the gateway sets, so a second lookup by order id alone, just to say <code>unauthorized</code>, would add a database call for a rare case. An empty stored snapshot is treated as missing.</p><p><b>Code:</b> a miss or an empty snapshot now returns <code>order-not-found.dwl</code>, the UCP envelope with HTTP 200. Before, it returned HTTP 404 with a Newell body, and an empty snapshot returned 200 "No data found".</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-medium">Medium</span><span class="tag code c-ver">Code: To verify</span>Downstream Postgres SAPI failures return <b><code>503 Service Unavailable</code></b> with a <s>descriptive</s> <b>generic</b> error<b> message</b>; the caller <s>does not receive internal stack traces</s> <b>receives no internal detail or stack trace</b>.<div class="why"><p><b>What changed and why:</b> <code>502 Bad Gateway</code> becomes <code>503 Service Unavailable</code> (UCP lists 503 for temporary unavailability and has no 502; AC-18 already uses 503). "Descriptive" becomes "generic": the earlier code passed the System API's own error text through to the caller.</p><p><b>Code:</b> System API, HTTP, connectivity and timeout errors now return 503 with <code>"Service temporarily unavailable"</code> (<code>service-unavailable-response.dwl</code>); any other error returns a generic 500. The System API timeout is 10 seconds (was 120). Confirmed by MUnit; a forced failure in QA is still to be checked.</p></div></li>
+
+<li class="is-upd"><span class="tag t-chg">Updated</span><span class="tag p-medium">Medium</span><span class="tag code c-done">Code: Implemented</span>MUnit tests cover successful retrieval, optional-field handling, invalid requests, missing orders, <s>unauthorized access</s> <b>other-brand and empty-snapshot orders</b>, and backend failures. Publish the API contract and request/response examples in Anypoint Exchange.<div class="why"><p><b>What changed and why:</b> "unauthorized access" is replaced because other-brand orders now return <code>not_found</code> (AC 5).</p><p><b>Code:</b> <code>src/test/munit</code> now holds 8 tests: success, optional fields absent, invalid order id, invalid brand, missing brand, missing order, empty snapshot, backend failure. They pass. The RAML now describes the UCP order, the <code>not_found</code> envelope and the 503, and has been published to Exchange.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span><span class="tag code c-done">Code: Implemented</span>The brand is taken from the <b><code>brand</code> header set by</b> the brand's Flex Gateway (<code>gracobaby</code> or <code>yankeecandle</code>), never from the caller, and the order lookup matches the value the order-lifecycle application stores for that brand.<div class="why"><p><b>Why we added it:</b> The story never says how the brand is known. Gracobaby is stored under <code>gracobaby</code> by the lifecycle app (<code>ucp.siteCodeToBrand.gracobaby</code> in qa, uat and prod), so the gateway must send that value, not <code>graco</code>; with <code>graco</code> every Graco order would be not found. The gateways send <code>brand</code> (not <code>X-Brand</code>) and overwrite any caller value.</p><p><b>Code:</b> the API reads the <code>brand</code> header and matches the stored value as sent. Testing also found that the original input check had an operator-precedence flaw that let a missing or malformed brand through to the database filter. It now rejects them with 400.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span><span class="tag code c-done">Code: Implemented</span>An order that has been completed but whose Order Created event has not yet been processed <s>gets a defined response [Q-40-01]</s> <b>returns the same <code>not_found</code> envelope as a missing order</b>, never a server error.<div class="why"><p><b>Why we added it:</b> The table row is written only when the lifecycle app processes the OMS <code>New</code> event, which happens after OMS's 2-minute batch and the queue delivery. Until then Get Order finds nothing, even though Google already holds the order id. Decision Q-40-01: return <code>not_found</code> in that window. The alternative, a minimal order built from the checkout, would make this API build orders instead of returning the stored snapshot.</p></div></li>
+</ol>
+    </div></div>
+  </article>
+</section>
+
+<section id="tests">
+  <h2>Test Scenarios</h2>
+  <p class="lede">The Test Scenarios field is empty in Jira, so all twelve scenarios are new. Each names the criterion it verifies. Two scenarios from the earlier draft are gone: header validation (AC 1 no longer requires it) and a late Shipped event after Delivered, which is the lifecycle app's behaviour.</p>
+  <article class="card">
+    <div class="cbody"><div class="para">
+<ol class="acs">
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Through the brand's gateway with a valid token, call <code>GET /orders/{id}</code> for an existing order and confirm HTTP 200, <code>Content-Type: application/json</code>, and a body with <code>ucp</code>, <code>id</code>, <code>checkout_id</code>, <code>permalink_url</code>, <code>line_items</code>, <code>fulfillment</code>, <code>currency</code> and <code>totals</code>, with <code>currency</code> equal to the checkout's.<div class="why"><p><b>Verifies</b> AC 1 and AC 3.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Connect to the endpoint with TLS 1.2 only and confirm the connection is refused; connect with TLS 1.3 and confirm it succeeds.<div class="why"><p><b>Verifies</b> AC 1. Checked at the gateway or load balancer, which terminates TLS.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Through the gateway, send no token, an expired or invalid token, and a token for the other brand, and confirm 401 each time.<div class="why"><p><b>Verifies</b> AC 2. Checked at the gateway.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Request an existing order and confirm the response equals the stored snapshot, with no fields added, removed or changed.<div class="why"><p><b>Verifies</b> AC 3 and AC 4. Completeness of the snapshot itself is tested in the order-lifecycle stories.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Request an order id that does not exist and confirm HTTP 200 with <code>ucp.status: "error"</code> and one message <code>type: "error"</code>, <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>, and no order fields.<div class="why"><p><b>Verifies</b> AC 5.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Through the Yankee Candle gateway, request a Graco order id, and confirm HTTP 200 with <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>.<div class="why"><p><b>Verifies</b> AC 5 and AC 8.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Request an order whose stored snapshot is empty and confirm the <code>not_found</code> envelope, never a 200 "No data found" body.<div class="why"><p><b>Verifies</b> AC 5.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-high">High</span>Through the Graco gateway, request a Graco order placed through Google and confirm it is found.<div class="why"><p><b>Verifies</b> AC 8. Needs the gateway to send <code>gracobaby</code>.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Send a request with a caller-supplied <code>brand</code> header that differs from the gateway's brand and confirm the gateway's brand is the one used.<div class="why"><p><b>Verifies</b> AC 8. Checked at the gateway.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Make the Postgres System API unavailable and confirm HTTP 503 with a generic body (no stack trace or internal host names); make it slow and confirm the response returns within 10 seconds.<div class="why"><p><b>Verifies</b> AC 6.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Complete a checkout and call Get Order immediately, before the Order Created event has been processed, and confirm HTTP 200 with <code>code: "not_found"</code>.<div class="why"><p><b>Verifies</b> AC 9.</p></div></li>
+
+<li class="is-new"><span class="tag t-add">New</span><span class="tag p-medium">Medium</span>Run the MUnit suite and confirm it covers successful retrieval, optional fields, invalid requests, missing orders, other-brand and empty-snapshot orders, and backend failures; confirm Exchange shows <code>GET /order/{orderId}</code> (reached by Google as <code>GET /orders/{id}</code>) with UCP request and response examples.<div class="why"><p><b>Verifies</b> AC 7.</p></div></li>
+</ol>
+      <p style="margin-top:10px;color:var(--muted)"><b>Precondition:</b> run these through each brand's Flex Gateway, which validates the token, rewrites the path and sets the brand. Called directly, the API answers with its own client-id policy and the <code>/order/{orderId}</code> path.</p>
+    </div></div>
+  </article>
+</section>
+
+<section id="arch">
+  <h2>Architectural Solution</h2>
+  <div class="note"><p>Each brand has a Flex Gateway proxy (Graco, Yankee Candle). The proxy validates the OAuth JWT and TLS, rewrites <code>GET /orders/{id}</code> to this API's <code>GET /order/{orderId}</code>, and sets the <code>brand</code> header (<code>gracobaby</code> or <code>yankeecandle</code>), overwriting any value from the caller. It also supplies the Anypoint client credentials.</p><p>The API itself only reads. It looks up the order by id and brand in <code>ucp_order_latest_status</code> through the Postgres System API, and returns the stored UCP order entity unchanged. The lifecycle webhooks (AC-23, AC-24, AC-25, AC-35, AC-38) write that table.</p></div>
+</section>
+
+<section id="impl">
+  <h2>Implementation details</h2>
+  <div class="note"><ul><li><b>Found:</b> HTTP 200 with the stored snapshot.</li><li><b>Missing order, other-brand order, empty snapshot, or an order not yet processed:</b> HTTP 200 with the UCP error envelope, <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>.</li><li><b>Postgres System API failure or timeout:</b> HTTP 503 with a generic body. The System API timeout is 10 seconds.</li><li><b>Invalid or missing <code>orderId</code> or <code>brand</code></b> (anything other than letters, digits, <code>-</code> and <code>_</code>, up to 64 characters): HTTP 400.</li><li><b>Logging:</b> Splunk gets only order id, status, brand and site. The snapshot, which holds the shopper's name and address, is never logged.</li></ul></div>
+  <p class="lede">Review notes (not for Jira).</p>
+  <div class="tablewrap">
+    <table class="outcomes">
+      <thead><tr><th>Outcome</th><th>Required</th><th>Code now</th><th>Criterion</th></tr></thead>
+      <tbody><tr><td>Order found</td><td>200, the UCP order entity</td><td>200, the stored snapshot</td><td>AC 1, AC 3</td></tr><tr><td>Order not found, other-brand order, empty snapshot, or not yet processed</td><td>200, <code>ucp.status: "error"</code>, <code>not_found</code>, unrecoverable</td><td>200, the UCP <code>not_found</code> envelope</td><td>AC 5, AC 9</td></tr><tr><td><code>orderId</code> or <code>brand</code> missing or malformed</td><td>400</td><td>400 (the check now rejects a missing or malformed brand)</td><td>AC 8</td></tr><tr><td>Missing, invalid or other-brand token</td><td>401 at the gateway</td><td>Gateway to confirm</td><td>AC 2</td></tr><tr><td>Postgres System API unavailable or slow</td><td>503, no internal detail, within 10 s</td><td>503 with a generic body; 10 s timeout</td><td>AC 6</td></tr><tr><td>Path and TLS</td><td><code>GET /orders/{id}</code> over TLS 1.3</td><td>Gateway rewrites to <code>/order/{orderId}</code>; API is plain HTTP behind it</td><td>AC 1</td></tr></tbody>
+    </table>
+  </div>
+  <article class="card">
+    <div class="cbody">
+      <div class="band"><div class="lbl"><span class="tag t-guard">Verified correct</span></div><div><ul>
+        <li>The 200 body is the stored UCP order entity, read whether the System API returns it as text or as parsed JSON (<code>order-status-response.dwl</code>), so the response schema already matches what Google receives by webhook.</li>
+        <li>Order id and brand are restricted to letters, digits, <code>-</code> and <code>_</code> before they go into the System API filter. The check had an operator-precedence flaw that let a missing or malformed brand through; it is fixed and covered by MUnit tests.</li>
+      </ul></div></div>
+      <div class="band"><div class="lbl"><span class="tag t-chg">Done in this change</span></div><div><ul>
+        <li>UCP <code>not_found</code> envelope with HTTP 200 for a missing order, an other-brand order and an empty snapshot (<code>order-not-found.dwl</code>).</li>
+        <li>503 with a generic body for System API, HTTP, connectivity and timeout failures; generic 500 otherwise; System API timeout 120 s → 10 s.</li>
+        <li>Splunk now logs only id, status, brand and site (<code>sf-splunk-info</code>), not the full snapshot with the shopper's name and address.</li>
+        <li>8 MUnit tests, and the RAML and README updated and published.</li>
+      </ul></div></div>
+      <div class="band"><div class="lbl"><span class="tag t-chg">Other stories</span></div><div><ul>
+        <li>The latest-status ordering check (AC 4) and the full-order payloads belong to the lifecycle app (AC-23, AC-24, AC-25, AC-35, AC-38); this endpoint returns whatever those stories store.</li>
+      </ul></div></div>
+      <div class="band"><div class="lbl"><span class="tag t-open">Dependencies</span></div><div><ul>
+        <li>AC-39: each brand's Flex Gateway routes <code>/orders/*</code> to this application, validates Google's token, rewrites the path and sets <code>brand</code>.</li>
+        <li>AC-27: the brand profile's REST <code>endpoint</code> is the base URL Google prefixes to <code>/orders/{id}</code>, so it must reach this application as well as the checkout API.</li>
+        <li>The order-lifecycle application: writes every snapshot this endpoint returns.</li>
+      </ul></div></div>
+      <div class="band"><div class="lbl"><span class="tag t-open">Still to confirm</span></div><div><ul>
+        <li>A forced Postgres System API failure in QA returns 503 with the generic body.</li>
+        <li>End-to-end through the gateways: an existing order (scenario 1), a Graco order through the Graco gateway (scenario 8), and an order not yet processed (scenario 11).</li>
+      </ul></div></div>
+    </div>
+  </article>
+</section>
+
+<section id="open">
+  <h2>Open questions</h2>
+  <article class="card"><div class="cbody">
+    <div class="band"><div class="lbl"><span class="tag t-keep">Decided</span></div><div><ul>
+      <li><span class="ask">Q-40-01</span>An order that has been completed but not yet processed by the lifecycle app returns <code>not_found</code>.</li>
+      <li><span class="ask">Q-40-02</span>An order of the other brand returns <code>not_found</code>, not <code>unauthorized</code>: the lookup is already scoped by the gateway's brand, and a second lookup just to name the case adds a database call.</li>
+    </ul></div></div>
+  </div></article>
+</section>
+</div>
+
+</body></html>

@@ -1,0 +1,215 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AC 40: Final Update</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout copied from the AC 23 proposal. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#17202b; --muted:#5a6778; --line:#dde2ea; --soft:#eef1f5;
+  --accent:#1d5c7a; --accent-soft:#e3eef4;
+  --add:#2e7d4f; --add-soft:#e4f3ea; --chg:#9a5b00; --chg-soft:#fdf1dc; --open:#2f5aa8; --open-soft:#e6edf9; --keep:#6b7280; --keep-soft:#eceef1; --crit:#b3261e; --crit-soft:#fbe9e7;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif; --f-body:"Public Sans","Segoe UI",Arial,sans-serif; --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171e; --panel:#1a212b; --fg:#e7ecf2; --muted:#9aa8b8; --line:#2c3643; --soft:#212a35;
+  --accent:#7cc0de; --accent-soft:#1f3442;
+  --add:#7fcf9d; --add-soft:#1b3326; --chg:#f0b35a; --chg-soft:#3a2b14; --open:#8fb0ee; --open-soft:#1f2a40; --keep:#a3abb6; --keep-soft:#262d37; --crit:#f2877e; --crit-soft:#3a1f1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171e; --panel:#1a212b; --fg:#e7ecf2; --muted:#9aa8b8; --line:#2c3643; --soft:#212a35;
+  --accent:#7cc0de; --accent-soft:#1f3442;
+  --add:#7fcf9d; --add-soft:#1b3326; --chg:#f0b35a; --chg-soft:#3a2b14; --open:#8fb0ee; --open-soft:#1f2a40; --keep:#a3abb6; --keep-soft:#262d37; --crit:#f2877e; --crit-soft:#3a1f1d; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14.5px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 64px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,38px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+h4{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:75ch;margin:8px 0 0}
+a{color:var(--accent)}
+code,.key{font-family:var(--f-mono);font-size:12.5px}
+code{background:var(--soft);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+header{display:grid;gap:6px;margin-bottom:20px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;margin-top:6px}
+section{margin-top:34px;display:grid;gap:14px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px}
+.note p{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);align-items:center}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:1px 7px;white-space:nowrap;font-family:var(--f-body)}
+.t-add{background:var(--add-soft);color:var(--add)} .t-chg{background:var(--chg-soft);color:var(--chg)} .t-open{background:var(--open-soft);color:var(--open)} .t-keep{background:var(--keep-soft);color:var(--keep)} .t-guard{background:var(--accent-soft);color:var(--accent)} .t-new{background:var(--accent-soft);color:var(--accent)} .t-fold{background:var(--keep-soft);color:var(--fg)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:var(--soft);color:var(--muted);white-space:nowrap}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:5px 10px;font-size:13px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);outline:none}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-top:1px solid var(--line)}
+th{background:var(--soft);border-top:none;font-size:12px;letter-spacing:.03em;color:var(--muted);font-weight:600}
+td:first-child{white-space:nowrap;font-family:var(--f-mono);font-size:12.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.chead{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chead .key{color:var(--accent);font-weight:500;font-size:14px}
+.chead .sub{flex-basis:100%;color:var(--muted);font-size:13.5px;margin:0}
+.cbody{display:grid;gap:0}
+.band{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:11px 16px;border-top:1px solid var(--line)}
+.band:first-child{border-top:none}
+.band>div{min-width:0}
+.band ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.band p{margin:0}
+.band .lbl{padding-top:2px}
+.cur{color:var(--muted)}
+.cur::before{content:"Current: ";font-weight:600;color:var(--fg)}
+.prop::before{content:"Proposed: ";font-weight:600;color:var(--chg)}
+.chg-item{display:grid;gap:3px}
+.tier{font-weight:600;font-size:12px;color:var(--muted);margin-top:4px}
+.story-stmt{font-style:italic}
+@media (max-width:640px){.band{grid-template-columns:1fr;gap:4px}}
+.ask{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:1px 6px;background:var(--crit-soft);color:var(--crit);margin-right:4px}
+table.matrix{min-width:1080px}
+table.matrix td:first-child{white-space:nowrap}
+tr.grp td{background:var(--soft);font-family:var(--f-body);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+/* AC-15 proposal additions */
+table.outcomes td:first-child{white-space:normal;font-family:var(--f-body);font-size:13.5px}
+table.outcomes{min-width:900px;table-layout:fixed}
+table.outcomes th:nth-child(1){width:22%} table.outcomes th:nth-child(2){width:18%} table.outcomes th:nth-child(3){width:10%} table.outcomes th:nth-child(4){width:12%}
+table.outcomes code{overflow-wrap:normal;word-break:normal}
+ol.acs{margin:0;padding-left:22px;display:grid;gap:7px}
+ol.acs li::marker{color:var(--muted);font-family:var(--f-mono);font-size:12px}
+pre.orch{margin:0;background:var(--soft);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--f-mono);font-size:12.5px;line-height:1.6}
+.cbody>.para{padding:11px 16px;border-top:1px solid var(--line)}
+.cbody>.para:first-child{border-top:none}
+.cbody>.para p{margin:0}
+.band{grid-template-columns:150px 1fr}
+.band .lbl .tag{white-space:normal;line-height:1.35}
+@media (max-width:640px){.band{grid-template-columns:1fr}}
+.band.wide{grid-template-columns:1fr;gap:8px}
+.storytitle{margin:4px 0 6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-family:var(--f-display);font-size:17px;font-weight:700}
+table.outcomes th:nth-child(1){width:21%} table.outcomes th:nth-child(2){width:15%} table.outcomes th:nth-child(3){width:9%} table.outcomes th:nth-child(4){width:18%}
+
+/* change highlighting */
+ol.acs li.is-new{background:var(--add-soft);border-radius:6px;padding:4px 8px}
+ol.acs li.is-upd{background:var(--chg-soft);border-radius:6px;padding:4px 8px}
+ol.acs li .tag{margin-right:6px;vertical-align:1px}
+.changelegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted);margin-top:4px}
+
+/* internal notes */
+.why{margin-top:8px;padding:8px 10px;border-left:3px solid var(--line);background:var(--panel);border-radius:0 6px 6px 0;display:grid;gap:5px;font-size:13px;color:var(--fg)}
+li.is-new .why{border-left-color:var(--add)} li.is-upd .why{border-left-color:var(--chg)}
+.why p{margin:0} .why b{font-weight:600}
+.why .orig{color:var(--muted)}
+.tag.p-high{background:var(--crit-soft);color:var(--crit)} .tag.p-medium{background:var(--open-soft);color:var(--open)} .tag.p-low{background:var(--keep-soft);color:var(--keep)}
+.priolegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted)}
+.tag.code{background:transparent;border:1px solid currentColor;padding:0 6px;margin-right:6px}
+.c-done{color:var(--add)} .c-part{color:var(--chg)} .c-none{color:var(--crit)} .c-ver{color:var(--open)}
+.codelegend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted)}
+/* challenged lines */
+.tag.t-chal{background:var(--crit-soft);color:var(--crit)}
+ol.acs li.is-chal{background:var(--crit-soft);border-radius:6px;padding:4px 8px}
+li.is-chal .why{border-left-color:var(--crit)}
+</style>
+</head><body><div class="wrap">
+<header>
+  <h1>AC 40: Final Update</h1>
+  <p class="storytitle"><span class="eyebrow">Story title</span><span>Google UCP | Order Lifecycle API | Get Order Mulesoft Endpoint</span></p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#description">Description</a>
+    <a href="#ac">Acceptance Criteria</a>
+    <a href="#tests">Test Scenarios</a>
+    <a href="#arch">Architectural Solution</a>
+    <a href="#impl">Implementation details</a>
+    <a href="#open">Open questions</a>
+  </nav>
+</header>
+
+<section id="description">
+  <h2>Description</h2>
+  <article class="card">
+    <div class="cbody">
+      <div class="para"><p class="story-stmt"><b>User story:</b> <b>As</b> Google UCP (the API consumer), <b>I want</b> to call <code>GET /orders/{id}</code>, <b>So that</b> I can retrieve the latest snapshot of an order's status on demand.</p></div>
+      <div class="para"><p>Develop a MuleSoft API that returns the order's current-state snapshot: the full UCP order entity most recently sent to Google by the order-lifecycle webhooks (AC-23, AC-24, AC-25, AC-35, AC-38), stored in <code>ucp_order_latest_status</code> and looked up by order id and brand through the Postgres System API. Implement the endpoint according to the <a href="https://ucp.dev/2026-04-08/specification/order-rest/#get-order">UCP Get Order REST specification, version 2026-04-08</a>. The links in the Acceptance Criteria point to <code>ucp.dev/latest</code>; read them at 2026-04-08.</p></div>
+      <div class="para"><p>Include request validation, authentication, order-level authorization, backend integration, response mapping, error handling, and request tracing.</p></div>
+    </div>
+  </article>
+</section>
+
+<section id="ac">
+  <h2>Acceptance Criteria</h2>
+  <article class="card"><div class="cbody"><div class="para">
+<ol class="acs">
+<li>Expose <code>GET /orders/{id}</code> with a required string order ID. Serve the endpoint over HTTPS with TLS 1.3 or higher. The <code>Request-Id</code> and <code>UCP-Agent</code> headers are not validated by this API or its gateway. <a href="https://ucp.dev/latest/specification/shopping/order/rest/#http-headers">REST requirements</a></li>
+
+<li>Request must include a valid OAuth JWT bearer token; unauthenticated or invalid-token requests are rejected with <code>401 Unauthorized</code>. Token validation sits on each brand's Flex Gateway (AC-39), which also sets the brand (AC 8); test it through the gateway, not against the API directly.</li>
+
+<li>For an existing order, return HTTP <code>200</code> with <code>Content-Type: application/json</code>. Include required fields: <code>ucp</code>, <code>id</code>, <code>checkout_id</code>, <code>permalink_url</code>, <code>line_items</code>, <code>fulfillment</code>, <code>currency</code>, and <code>totals</code>. Return the stored snapshot's fields as they are. Currency must match the originating checkout. <a href="https://ucp.dev/latest/specification/shopping/order/rest/#output-schema">Response contract</a></li>
+
+<li>Return the order snapshot as stored in <code>ucp_order_latest_status</code>, without changing it. Its completeness and ordering are the responsibility of the order-lifecycle stories (AC-23, AC-24, AC-25, AC-35, AC-38). <a href="https://ucp.dev/latest/specification/shopping/order/">Order data model</a></li>
+
+<li>For a missing order, an order of the other brand, or an order whose stored snapshot is empty, return the documented HTTP <code>200</code> business-error envelope with <code>ucp.status: "error"</code>, a message with code <code>not_found</code> and severity <code>unrecoverable</code>. Do not return HTTP 404. <a href="https://ucp.dev/latest/specification/shopping/order/rest/#example">Error examples</a></li>
+
+<li>Downstream Postgres SAPI failures return <code>503 Service Unavailable</code> with a generic error message; the caller receives no internal detail or stack trace.</li>
+
+<li>MUnit tests cover successful retrieval, optional-field handling, invalid requests, missing orders, other-brand and empty-snapshot orders, and backend failures. Publish the API contract and request/response examples in Anypoint Exchange.</li>
+
+<li>The brand is taken from the <code>brand</code> header set by the brand's Flex Gateway (<code>gracobaby</code> or <code>yankeecandle</code>), never from the caller, and the order lookup matches the value the order-lifecycle application stores for that brand.</li>
+
+<li>An order that has been completed but whose Order Created event has not yet been processed returns the same <code>not_found</code> envelope as a missing order, never a server error.</li>
+</ol>
+  </div></div></article>
+</section>
+
+<section id="tests">
+  <h2>Test Scenarios</h2>
+  <article class="card"><div class="cbody"><div class="para">
+<ol class="acs">
+<li>Through the brand's gateway with a valid token, call <code>GET /orders/{id}</code> for an existing order and confirm HTTP 200, <code>Content-Type: application/json</code>, and a body with <code>ucp</code>, <code>id</code>, <code>checkout_id</code>, <code>permalink_url</code>, <code>line_items</code>, <code>fulfillment</code>, <code>currency</code> and <code>totals</code>, with <code>currency</code> equal to the checkout's.</li>
+
+<li>Connect to the endpoint with TLS 1.2 only and confirm the connection is refused; connect with TLS 1.3 and confirm it succeeds.</li>
+
+<li>Through the gateway, send no token, an expired or invalid token, and a token for the other brand, and confirm 401 each time.</li>
+
+<li>Request an existing order and confirm the response equals the stored snapshot, with no fields added, removed or changed.</li>
+
+<li>Request an order id that does not exist and confirm HTTP 200 with <code>ucp.status: "error"</code> and one message <code>type: "error"</code>, <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>, and no order fields.</li>
+
+<li>Through the Yankee Candle gateway, request a Graco order id, and confirm HTTP 200 with <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>.</li>
+
+<li>Request an order whose stored snapshot is empty and confirm the <code>not_found</code> envelope, never a 200 "No data found" body.</li>
+
+<li>Through the Graco gateway, request a Graco order placed through Google and confirm it is found.</li>
+
+<li>Send a request with a caller-supplied <code>brand</code> header that differs from the gateway's brand and confirm the gateway's brand is the one used.</li>
+
+<li>Make the Postgres System API unavailable and confirm HTTP 503 with a generic body (no stack trace or internal host names); make it slow and confirm the response returns within 10 seconds.</li>
+
+<li>Complete a checkout and call Get Order immediately, before the Order Created event has been processed, and confirm HTTP 200 with <code>code: "not_found"</code>.</li>
+
+<li>Run the MUnit suite and confirm it covers successful retrieval, optional fields, invalid requests, missing orders, other-brand and empty-snapshot orders, and backend failures; confirm Exchange shows <code>GET /order/{orderId}</code> (reached by Google as <code>GET /orders/{id}</code>) with UCP request and response examples.</li>
+</ol>
+    <p style="margin-top:10px;color:var(--muted)"><b>Precondition:</b> run these through each brand's Flex Gateway, which validates the token, rewrites the path and sets the brand. Called directly, the API answers with its own client-id policy and the <code>/order/{orderId}</code> path.</p>
+  </div></div></article>
+</section>
+
+<section id="arch">
+  <h2>Architectural Solution</h2>
+  <div class="note"><p>Each brand has a Flex Gateway proxy (Graco, Yankee Candle). The proxy validates the OAuth JWT and TLS, rewrites <code>GET /orders/{id}</code> to this API's <code>GET /order/{orderId}</code>, and sets the <code>brand</code> header (<code>gracobaby</code> or <code>yankeecandle</code>), overwriting any value from the caller. It also supplies the Anypoint client credentials.</p><p>The API itself only reads. It looks up the order by id and brand in <code>ucp_order_latest_status</code> through the Postgres System API, and returns the stored UCP order entity unchanged. The lifecycle webhooks (AC-23, AC-24, AC-25, AC-35, AC-38) write that table.</p></div>
+</section>
+
+<section id="impl">
+  <h2>Implementation details</h2>
+  <div class="note"><ul><li><b>Found:</b> HTTP 200 with the stored snapshot.</li><li><b>Missing order, other-brand order, empty snapshot, or an order not yet processed:</b> HTTP 200 with the UCP error envelope, <code>code: "not_found"</code>, <code>severity: "unrecoverable"</code>.</li><li><b>Postgres System API failure or timeout:</b> HTTP 503 with a generic body. The System API timeout is 10 seconds.</li><li><b>Invalid or missing <code>orderId</code> or <code>brand</code></b> (anything other than letters, digits, <code>-</code> and <code>_</code>, up to 64 characters): HTTP 400.</li><li><b>Logging:</b> Splunk gets only order id, status, brand and site. The snapshot, which holds the shopper's name and address, is never logged.</li></ul></div>
+</section>
+
+<section id="open">
+  <h2>Open questions</h2>
+  <article class="card"><div class="cbody">
+    <div class="band"><div class="lbl"><span class="tag t-keep">Decided</span></div><div><ul>
+      <li><span class="ask">Q-40-01</span>An order that has been completed but not yet processed by the lifecycle app returns <code>not_found</code>.</li>
+      <li><span class="ask">Q-40-02</span>An order of the other brand returns <code>not_found</code>.</li>
+    </ul></div></div>
+  </div></article>
+</section>
+</div>
+
+</body></html>
