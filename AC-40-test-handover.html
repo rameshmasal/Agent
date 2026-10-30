@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>AC 40 test handover</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">:root{--bg:#f6f7f9;--panel:#fff;--fg:#17202b;--muted:#5a6778;--line:#dde2ea;--soft:#eef1f5;--accent:#1d5c7a}
+@media (prefers-color-scheme:dark){:root{--bg:#12171e;--panel:#1a212b;--fg:#e7ecf2;--muted:#9aa8b8;--line:#2c3643;--soft:#212a35;--accent:#7cc0de}}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",Arial,sans-serif;font-size:14.5px;line-height:1.55;margin:0}
+body>*{max-width:1040px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px}
+header#title-block-header{padding-top:28px}
+h1.title{font-size:32px;margin:0 0 6px}
+h2{font-size:21px;margin:34px auto 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+a{color:var(--accent)}
+code{font-family:Consolas,monospace;font-size:12.5px;background:var(--soft);padding:1px 5px;border-radius:4px}
+pre{background:var(--soft);border-radius:8px;padding:12px 14px;overflow-x:auto}
+pre code{background:none;padding:0}
+table{border-collapse:collapse;width:calc(100% - 40px);font-size:13.5px;background:var(--panel);display:block;overflow-x:auto}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border:1px solid var(--line)}
+th{background:var(--soft);font-size:12px;color:var(--muted)}
+ol,ul{padding-left:42px}
+li{margin:5px 0}
+body{padding-bottom:50px}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">AC 40: Get Order endpoint, test handover</h1>
+</header>
+<p><strong>Story:</strong> Google UCP | Order Lifecycle API | Get Order
+Mulesoft Endpoint</p>
+<p><strong>As</strong> Google UCP (the API consumer), <strong>I
+want</strong> to call <code>GET /orders/{id}</code>, <strong>so
+that</strong> I can retrieve the latest snapshot of an order’s status on
+demand.</p>
+<h2 id="what-the-api-does">What the API does</h2>
+<p>The API reads the latest order snapshot from the database and returns
+it unchanged. It is the UCP order entity most recently sent to Google by
+the order-lifecycle webhooks, so its content is only as complete and as
+current as those webhooks made it.</p>
+<h2 id="how-it-is-called">How it is called</h2>
+<p>Each brand (Graco, Yankee Candle) has its own Flex Gateway proxy.
+Test through the brand’s gateway, not against the API directly.</p>
+<p>The gateway:</p>
+<ul>
+<li>validates the OAuth JWT and enforces TLS 1.3</li>
+<li>checks the <code>Request-Id</code> and <code>UCP-Agent</code>
+headers</li>
+<li>rewrites <code>GET /orders/{id}</code> to the API’s
+<code>GET /order/{orderId}</code></li>
+<li>sets the <code>brand</code> header (<code>gracobaby</code> or
+<code>yankeecandle</code>), overwriting any value from the caller</li>
+</ul>
+<h2 id="acceptance-criteria">Acceptance criteria</h2>
+<ol type="1">
+<li>Expose <code>GET /orders/{id}</code> with a required string order
+ID. Validate required <code>Request-Id</code> and <code>UCP-Agent</code>
+headers; the latter must contain a profile URL ending in
+<code>/.well-known/ucp</code> using RFC 8941 dictionary syntax. Serve
+the endpoint over HTTPS with TLS 1.3 or higher.</li>
+<li>Request must include a valid OAuth JWT bearer token; unauthenticated
+or invalid-token requests are rejected with
+<code>401 Unauthorized</code>. Token validation sits on each brand’s
+Flex Gateway.</li>
+<li>For an existing order, return HTTP <code>200</code> with
+<code>Content-Type: application/json</code>. Include required fields:
+<code>ucp</code>, <code>id</code>, <code>checkout_id</code>,
+<code>permalink_url</code>, <code>line_items</code>,
+<code>fulfillment</code>, <code>currency</code>, and
+<code>totals</code>. Return the stored snapshot’s fields as they are.
+Currency must match the originating checkout.</li>
+<li>Return the order snapshot as stored in
+<code>ucp_order_latest_status</code>, without changing it. Its
+completeness and ordering are the responsibility of the order-lifecycle
+stories.</li>
+<li>For a missing order, an order of the other brand, or an order whose
+stored snapshot is empty, return HTTP <code>200</code> with
+<code>ucp.status: &quot;error&quot;</code>, a message with code
+<code>not_found</code> and severity <code>unrecoverable</code>. Do not
+return HTTP 404.</li>
+<li>Downstream Postgres System API failures return
+<code>503 Service Unavailable</code> with a generic error message; the
+caller receives no internal detail or stack trace.</li>
+<li>MUnit tests cover successful retrieval, optional-field handling,
+invalid requests, missing orders, other-brand and empty-snapshot orders,
+and backend failures. The API contract and examples are published in
+Anypoint Exchange.</li>
+<li>The brand is taken from the <code>brand</code> header set by the
+brand’s Flex Gateway (<code>gracobaby</code> or
+<code>yankeecandle</code>), never from the caller, and the order lookup
+matches the value the order-lifecycle application stores for that
+brand.</li>
+<li>An order that has been completed but whose Order Created event has
+not yet been processed returns the same <code>not_found</code> envelope
+as a missing order, never a server error.</li>
+</ol>
+<h2 id="test-scenarios">Test scenarios</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Scenario</th>
+<th>Expected result</th>
+<th>Verifies</th>
+<th>Tested at</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Through the brand’s gateway with a valid token, call
+<code>GET /orders/{id}</code> for an existing order.</td>
+<td>HTTP 200, <code>Content-Type: application/json</code>, body with
+<code>ucp</code>, <code>id</code>, <code>checkout_id</code>,
+<code>permalink_url</code>, <code>line_items</code>,
+<code>fulfillment</code>, <code>currency</code>, <code>totals</code>;
+<code>currency</code> equals the checkout’s.</td>
+<td>AC 1, 3</td>
+<td>Gateway and API</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Send the request without <code>Request-Id</code>; separately without
+<code>UCP-Agent</code>; separately with a <code>UCP-Agent</code> that is
+not <code>profile=&quot;…/.well-known/ucp&quot;</code>.</td>
+<td>Each is rejected with 400.</td>
+<td>AC 1</td>
+<td>Gateway</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Connect with TLS 1.2 only, then with TLS 1.3.</td>
+<td>TLS 1.2 refused; TLS 1.3 succeeds.</td>
+<td>AC 1</td>
+<td>Gateway</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Send no token; an expired or invalid token; a token for the other
+brand.</td>
+<td>401 each time.</td>
+<td>AC 2</td>
+<td>Gateway</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>Request an existing order and compare the response with the stored
+snapshot.</td>
+<td>Response equals the stored snapshot; no fields added, removed or
+changed.</td>
+<td>AC 3, 4</td>
+<td>API</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>Request an order id that does not exist.</td>
+<td>HTTP 200, <code>ucp.status: &quot;error&quot;</code>, one message with
+<code>type: &quot;error&quot;</code>, <code>code: &quot;not_found&quot;</code>,
+<code>severity: &quot;unrecoverable&quot;</code>, and no order fields.</td>
+<td>AC 5</td>
+<td>API</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Through the Yankee Candle gateway, request a Graco order id.</td>
+<td>HTTP 200, <code>code: &quot;not_found&quot;</code>,
+<code>severity: &quot;unrecoverable&quot;</code>.</td>
+<td>AC 5, 8</td>
+<td>API</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>Request an order whose stored snapshot is empty.</td>
+<td>The <code>not_found</code> envelope; never a 200 “No data found”
+body.</td>
+<td>AC 5</td>
+<td>API</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>Through the Graco gateway, request a Graco order placed through
+Google.</td>
+<td>The order is found.</td>
+<td>AC 8</td>
+<td>Gateway and API</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>Send a request with a caller-supplied <code>brand</code> header that
+differs from the gateway’s brand.</td>
+<td>The gateway’s brand is the one used.</td>
+<td>AC 8</td>
+<td>Gateway</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>Make the Postgres System API unavailable; separately make it
+slow.</td>
+<td>Unavailable: HTTP 503 with a generic body (no stack trace or
+internal host names). Slow: response returns within 10 seconds.</td>
+<td>AC 6</td>
+<td>API</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>Complete a checkout and call Get Order immediately, before the Order
+Created event has been processed.</td>
+<td>HTTP 200 with <code>code: &quot;not_found&quot;</code>.</td>
+<td>AC 9</td>
+<td>API</td>
+</tr>
+<tr class="odd">
+<td>13</td>
+<td>Run the MUnit suite; open the API in Anypoint Exchange.</td>
+<td>Suite covers successful retrieval, optional fields, invalid
+requests, missing orders, other-brand and empty-snapshot orders, and
+backend failures. Exchange shows <code>GET /order/{orderId}</code>
+(reached by Google as <code>GET /orders/{id}</code>) with request and
+response examples.</td>
+<td>AC 7</td>
+<td>API</td>
+</tr>
+</tbody>
+</table>
+<h2 id="expected-responses">Expected responses</h2>
+<p><strong>Order found</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ucp&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-04-08&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;success&quot;</span> <span class="fu">},</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;US09576379916&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;checkout_id&quot;</span><span class="fu">:</span> <span class="st">&quot;chk_123&quot;</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;permalink_url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://www.yankeecandle.com/order/US09576379916&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;line_items&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fulfillment&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;totals&quot;</span><span class="fu">:</span> <span class="ot">[]</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Order not found</strong> (HTTP 200)</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ucp&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-04-08&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span> <span class="fu">},</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;messages&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span><span class="fu">,</span> <span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;not_found&quot;</span><span class="fu">,</span> <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="st">&quot;Order not found&quot;</span><span class="fu">,</span> <span class="dt">&quot;severity&quot;</span><span class="fu">:</span> <span class="st">&quot;unrecoverable&quot;</span> <span class="fu">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Postgres System API unavailable</strong> (HTTP 503)</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;Failure&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status-code&quot;</span><span class="fu">:</span> <span class="st">&quot;503&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;Service temporarily unavailable&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="notes-for-testers">Notes for testers</h2>
+<ul>
+<li>An order has no stored snapshot until its Order Created event has
+been processed, so a very new order returns <code>not_found</code> for a
+short time.</li>
+<li>The content of a found order (line items, fulfillment events,
+adjustments) comes from the order-lifecycle stories (AC-23, AC-24,
+AC-25, AC-35, AC-38). Scenario 5 checks that this API returns the stored
+snapshot unchanged, not that the snapshot is complete.</li>
+<li>Stale-snapshot behaviour, such as a late Shipped event arriving
+after Delivered, is tested in the order-lifecycle stories.</li>
+<li>A missing or malformed order id or brand returns 400 from the API
+itself.</li>
+</ul>
+</body>
+</html>
