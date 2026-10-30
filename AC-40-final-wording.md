@@ -8,8 +8,7 @@ Paste each block into the matching Jira field. Lines marked **(changed)** differ
 
 ## Acceptance Criteria
 
-1. Expose `GET /orders/{id}` with a required string order ID. Validate required `Request-Id` and `UCP-Agent` headers; the latter must contain a profile URL ending in `/.well-known/ucp` using RFC 8941 dictionary syntax. Serve the endpoint over HTTPS with TLS 1.3 or higher. [REST requirements](https://ucp.dev/latest/specification/shopping/order/rest/#http-headers)
-   *Optional addition: "These checks, and the rewrite of `/orders/{id}` to this API's `/order/{orderId}`, are performed by each brand's Flex Gateway."*
+1. **(changed)** Expose `GET /orders/{id}` with a required string order ID. Serve the endpoint over HTTPS with TLS 1.3 or higher. The `Request-Id` and `UCP-Agent` headers are not validated by this API or its gateway. [REST requirements](https://ucp.dev/latest/specification/shopping/order/rest/#http-headers)
 
 2. Request must include a valid OAuth JWT bearer token; unauthenticated or invalid-token requests are rejected with `401 Unauthorized`. Token validation sits on each brand's Flex Gateway (AC-39), which also sets the brand (AC 8); test it through the gateway, not against the API directly.
 
@@ -33,7 +32,7 @@ Paste each block into the matching Jira field. Lines marked **(changed)** differ
 
 1. Through the brand's gateway with a valid token, call `GET /orders/{id}` for an existing order and confirm HTTP 200, `Content-Type: application/json`, and a body with `ucp`, `id`, `checkout_id`, `permalink_url`, `line_items`, `fulfillment`, `currency` and `totals`, with `currency` equal to the checkout's.
 
-2. Send the request without `Request-Id`, and separately without `UCP-Agent` or with a `UCP-Agent` that is not `profile="…/.well-known/ucp"`, and confirm each is rejected with 400.
+2. **(removed)** Header validation is not part of this story, so the scenario is dropped.
 
 3. Connect to the endpoint with TLS 1.2 only and confirm the connection is refused; connect with TLS 1.3 and confirm it succeeds.
 
@@ -63,7 +62,7 @@ Paste each block into the matching Jira field. Lines marked **(changed)** differ
 
 ## Architectural Solution
 
-Each brand has a Flex Gateway proxy (Graco, Yankee Candle). The proxy validates the OAuth JWT and TLS, checks `Request-Id` and `UCP-Agent`, rewrites `GET /orders/{id}` to this API's `GET /order/{orderId}`, and sets the `brand` header (`gracobaby` or `yankeecandle`), overwriting any value from the caller. It also supplies the Anypoint client credentials.
+Each brand has a Flex Gateway proxy (Graco, Yankee Candle). The proxy validates the OAuth JWT and TLS, rewrites `GET /orders/{id}` to this API's `GET /order/{orderId}`, and sets the `brand` header (`gracobaby` or `yankeecandle`), overwriting any value from the caller. It also supplies the Anypoint client credentials.
 
 The API itself only reads. It looks up the order by id and brand in `ucp_order_latest_status` through the Postgres System API, and returns the stored UCP order entity unchanged. The lifecycle webhooks (AC-23, AC-24, AC-25, AC-35, AC-38) write that table.
 
