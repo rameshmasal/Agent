@@ -1,0 +1,105 @@
+#%RAML 1.0
+version: v1.0
+title: Order status API
+protocols: HTTPS
+
+documentation:
+  - title: Order status API
+    content: This API returns the latest status of an order from the ucp_order_latest_status table.
+
+uses:
+  lib: exchange_modules/7ce124c3-15c9-4cbd-a7c4-7273f3dd4bdb/newell-library/1.0.12/newell-library.raml
+
+types:
+  UcpOrder:
+    description: UCP order entity (2026-04-08), the snapshot last sent to Google by the order-lifecycle webhooks. Optional UCP fields are returned when present.
+    type: object
+    properties:
+      ucp: object
+      id: string
+      checkout_id: string
+      permalink_url: string
+      line_items: array
+      fulfillment: object
+      currency: string
+      totals: array
+  UcpErrorResponse:
+    description: UCP business error. Returned with HTTP 200.
+    type: object
+    properties:
+      ucp:
+        type: object
+        properties:
+          version: string
+          status: string
+      messages:
+        type: array
+        items:
+          type: object
+          properties:
+            type: string
+            code: string
+            content: string
+            severity: string
+  ServiceUnavailable:
+    type: object
+    properties:
+      status: string
+      status-code: string
+      message: string
+
+/order/{orderId}:
+  uriParameters:
+    orderId:
+      type: string
+      description: Order id, for example US09576379916
+  description: Get the latest order snapshot (UCP Get Order). Exposed to Google as GET /orders/{id} by the brand gateway.
+  is: [lib.trackable,lib.returns-400,lib.returns-401,lib.returns-404,lib.returns-405,lib.returns-406,lib.returns-500,lib.returns-501,lib.client-credentials]
+  get:
+    description: |
+      Returns the UCP order entity most recently sent to Google for the order and brand.
+      A missing order, an order of another brand, or an order with an empty snapshot is answered
+      with HTTP 200 and a UCP error envelope (code not_found), not HTTP 404.
+    headers:
+      brand:
+        type: string
+        required: true
+        description: Brand of the order, set by the brand gateway (gracobaby or yankeecandle). Only an order of this brand is returned.
+        example: yankeecandle
+    responses:
+      200:
+        body:
+          application/json:
+            type: UcpOrder | UcpErrorResponse
+            examples:
+              order:
+                value: |
+                  {
+                    "ucp": { "version": "2026-04-08", "status": "success" },
+                    "id": "US09576379916",
+                    "checkout_id": "chk_123",
+                    "permalink_url": "https://www.yankeecandle.com/order/US09576379916",
+                    "line_items": [],
+                    "fulfillment": {},
+                    "currency": "USD",
+                    "totals": []
+                  }
+              notFound:
+                value: |
+                  {
+                    "ucp": { "version": "2026-04-08", "status": "error" },
+                    "messages": [
+                      { "type": "error", "code": "not_found", "content": "Order not found", "severity": "unrecoverable" }
+                    ]
+                  }
+      503:
+        description: The Postgres System API is unavailable or too slow. No internal detail is returned.
+        body:
+          application/json:
+            type: ServiceUnavailable
+            example: |
+              {
+                "status": "Failure",
+                "status-code": "503",
+                "message": "Service temporarily unavailable"
+              }

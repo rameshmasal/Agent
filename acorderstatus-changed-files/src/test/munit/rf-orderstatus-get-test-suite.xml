@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<munit:config name="rf-orderstatus-get-test-suite.xml" />
+
+	<!-- Splunk logging is not under test: stop it calling out -->
+	<munit:before-test name="mock-splunk" doc:name="Before test">
+		<munit-tools:mock-when processor="mule:flow-ref" doc:name="Mock splunk sub-flow">
+			<munit-tools:with-attributes>
+				<munit-tools:with-attribute attributeName="name" whereValue="sf-splunk-sub-flow" />
+			</munit-tools:with-attributes>
+		</munit-tools:mock-when>
+	</munit:before-test>
+
+	<!-- Successful retrieval: the stored snapshot is returned as is -->
+	<munit:test name="get-order-success" doc:name="Successful retrieval">
+		<munit:behavior>
+			<munit-tools:mock-when processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table">
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[[{order_id: "US1", brand: "yankeecandle", site_id: "YCUS", order_status: "SHIPPED", order_snapshot: write({ucp: {version: "2026-04-08", status: "success"}, id: "US1", checkout_id: "chk_1", permalink_url: "https://example.com/o/US1", line_items: [{id: "li_1"}], fulfillment: {}, currency: "USD", totals: []}, "application/json")}]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US1" />
+					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[payload.id]" is="#[MunitTools::equalTo('US1')]" message="order id" />
+			<munit-tools:assert-that expression="#[payload.currency]" is="#[MunitTools::equalTo('USD')]" message="currency" />
+			<munit-tools:assert-that expression="#[vars.httpStatus default 200]" is="#[MunitTools::equalTo(200)]" message="status" />
+			<!-- order and brand are both part of the lookup -->
+			<munit-tools:verify-call processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table" times="1">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="filter" whereValue="#[MunitTools::equalTo(&quot;order_id.eq.'US1',,brand.eq.'yankeecandle'&quot;)]" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+	<!-- Optional fields missing: only what the snapshot holds is returned, nothing is added -->
+	<munit:test name="get-order-optional-fields-absent" doc:name="Optional fields absent">
+		<munit:behavior>
+			<munit-tools:mock-when processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table">
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[[{order_id: "US2", brand: "gracobaby", order_snapshot: {ucp: {version: "2026-04-08", status: "success"}, id: "US2", checkout_id: "chk_2", permalink_url: "https://example.com/o/US2", line_items: [], fulfillment: {}, currency: "USD", totals: []}}]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US2" />
+					<munit:variable key="brand" value="gracobaby" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[payload.id]" is="#[MunitTools::equalTo('US2')]" message="order id" />
+			<munit-tools:assert-that expression="#[payload.adjustments default null]" is="#[MunitTools::nullValue()]" message="absent optional field is not invented" />
+		</munit:validation>
+	</munit:test>
+
+	<!-- Invalid request: id or brand with characters outside letters, digits, - and _ -->
+	<munit:test name="get-order-invalid-order-id" doc:name="Invalid order id" expectedErrorType="APP:BAD_REQUEST">
+		<munit:behavior>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US1' OR '1'='1" />
+					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+	</munit:test>
+
+	<munit:test name="get-order-missing-brand" doc:name="Missing brand" expectedErrorType="APP:BAD_REQUEST">
+		<munit:behavior>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US1" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+	</munit:test>
+
+	<!-- Missing order, and an order of another brand (the brand-scoped query returns nothing) -->
+	<munit:test name="get-order-not-found" doc:name="Missing order">
+		<munit:behavior>
+			<munit-tools:mock-when processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table">
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[[]]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US404" />
+					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[vars.httpStatus]" is="#[MunitTools::equalTo(200)]" message="UCP business errors are HTTP 200" />
+			<munit-tools:assert-that expression="#[payload.ucp.status]" is="#[MunitTools::equalTo('error')]" message="ucp.status" />
+			<munit-tools:assert-that expression="#[payload.messages[0].code]" is="#[MunitTools::equalTo('not_found')]" message="code" />
+			<munit-tools:assert-that expression="#[payload.messages[0].severity]" is="#[MunitTools::equalTo('unrecoverable')]" message="severity" />
+		</munit:validation>
+	</munit:test>
+
+	<!-- Row exists but its snapshot is empty: treated as missing -->
+	<munit:test name="get-order-empty-snapshot" doc:name="Empty snapshot">
+		<munit:behavior>
+			<munit-tools:mock-when processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table">
+				<munit-tools:then-return>
+					<munit-tools:payload value='#[[{order_id: "US3", brand: "yankeecandle", order_snapshot: null}]]' />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US3" />
+					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[vars.httpStatus]" is="#[MunitTools::equalTo(200)]" message="status" />
+			<munit-tools:assert-that expression="#[payload.messages[0].code]" is="#[MunitTools::equalTo('not_found')]" message="code" />
+		</munit:validation>
+	</munit:test>
+
+	<!-- Backend failure: 503 and a generic body, nothing from the System API -->
+	<munit:test name="get-order-backend-failure" doc:name="Backend failure">
+		<munit:behavior>
+			<munit-tools:mock-when processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table">
+				<munit-tools:then-return>
+					<munit-tools:error typeId="HTTP:CONNECTIVITY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US1" />
+					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<try>
+				<flow-ref name="rf-orderstatus-get" />
+				<error-handler>
+					<on-error-continue>
+						<logger level="INFO" message="error propagated by the flow, as expected" />
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that expression="#[vars.httpStatus]" is="#[MunitTools::equalTo(503)]" message="status" />
+			<munit-tools:assert-that expression="#[payload.message]" is="#[MunitTools::equalTo('Service temporarily unavailable')]" message="generic message" />
+		</munit:validation>
+	</munit:test>
+
+</mule>
