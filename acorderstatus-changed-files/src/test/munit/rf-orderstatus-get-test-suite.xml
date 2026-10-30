@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 			<!-- order and brand are both part of the lookup -->
 			<munit-tools:verify-call processor="system-ap-ifor-postgres-db:select-rows-from-a-specified-schema-and-table" times="1">
 				<munit-tools:with-attributes>
-					<munit-tools:with-attribute attributeName="filter" whereValue="#[MunitTools::equalTo(&quot;order_id.eq.'US1',,brand.eq.'yankeecandle'&quot;)]" />
+					<munit-tools:with-attribute attributeName="filter" whereValue="order_id.eq.'US1',,brand.eq.'yankeecandle'" />
 				</munit-tools:with-attributes>
 			</munit-tools:verify-call>
 		</munit:validation>
@@ -83,6 +83,20 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 				<munit:variables>
 					<munit:variable key="orderId" value="US1' OR '1'='1" />
 					<munit:variable key="brand" value="yankeecandle" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref name="rf-orderstatus-get" />
+		</munit:execution>
+	</munit:test>
+
+	<munit:test name="get-order-invalid-brand" doc:name="Invalid brand" expectedErrorType="APP:BAD_REQUEST">
+		<munit:behavior>
+			<munit:set-event>
+				<munit:variables>
+					<munit:variable key="orderId" value="US1" />
+					<munit:variable key="brand" value="x',,order_id.neq.'" />
 				</munit:variables>
 			</munit:set-event>
 		</munit:behavior>

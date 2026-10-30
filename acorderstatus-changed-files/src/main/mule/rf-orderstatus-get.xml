@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 		<logger level="INFO" doc:name="Flow started" message="#['Order status request for order id: ' ++ (vars.orderId default '')]"/>
 		<!-- orderId and brand go into the System API filter as text, so only plain id characters are accepted -->
 		<choice doc:name="validate-input">
-			<when expression="#[not ((vars.orderId default '') matches /^[A-Za-z0-9_\-]{1,64}$/) or not ((vars.brand default '') matches /^[A-Za-z0-9_\-]{1,64}$/)]">
+			<when expression="#[not (((vars.orderId default '') matches /^[A-Za-z0-9_\-]{1,64}$/) and ((vars.brand default '') matches /^[A-Za-z0-9_\-]{1,64}$/))]">
 				<raise-error type="APP:BAD_REQUEST" description="orderId and brand must be 1 to 64 letters, digits, hyphens or underscores" doc:name="Raise bad request"/>
 			</when>
 		</choice>
